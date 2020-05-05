@@ -422,14 +422,18 @@ function replaceAll(str, search, replace) {
 }
 
 function FollowSeries(seriesname, seriesid, chatId) {
+    try{
     let db = new Database('./myseries.db');
-
-
     let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
     let info = query.run(chatId, seriesid, seriesname, null);
     db.close();
 
     return info.changes;
+    }
+    catch(error)
+    {
+        console.log(error);
+    }
 }
 
 function isWatchingSeries(chatId, seriesId) {
