@@ -437,7 +437,7 @@ const client = new Client({
   });
     client.connect();
     const values = [chatId, seriesid,seriesname,null];
-    const text="INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES($1,$2,$3,$4)";
+    const text='INSERT INTO watchedseries ("chatId", "seriesId", "seriesName", "nextEpisode") VALUES($1,$2,$3,$4)';
     client.query(text, values).then(res => {
     
     callback(res.rowCount);
@@ -477,7 +477,7 @@ const client = new Client({
   });
        client.connect();
        const values = [chatId, seriesId];
-       const text="SELECT seriesName FROM watchedseries WHERE chatId=$1 AND seriesId=$2";
+       const text='SELECT seriesName FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
        client.query(text, values).then(res => {
        if(res.rowCount==1)
        callback(true);
@@ -557,7 +557,7 @@ const client = new Client({
   });
    client.connect();
    const values = [chatId];
-   const text="SELECT seriesName,seriesId FROM watchedseries WHERE chatId=$1 ORDER By seriesName";
+   const text='SELECT "seriesName" , "seriesId" FROM watchedseries WHERE "chatId"=$1 ORDER By "seriesName"';
    client.query(text, values).then(res => {
     if (res.rowCount == 0)
         callback(null, "error");
@@ -628,7 +628,7 @@ const client = new Client({
   });
    client.connect();
    const values = [chatId,id];
-   const text="SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=$1 AND seriesId=$2";
+   const text='SELECT "seriesName","nextEpisode" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
    client.query(text, values).then(res => { if (res.rows[0].nextEpisode) {
     messagetext = "The next episode of " + res.rows[0].seriesName + " you have to watch is: " + res.rows[0].nextEpisode;
     infoKB = [
@@ -674,7 +674,7 @@ const client = new Client({
   });
    client.connect();
    const values = [notes, chatId,seriesId];
-   const text="update watchedseries set nextEpisode=$1 where chatId=$2 and seriesId=$3";
+   const text='update watchedseries set "nextEpisode"=$1 where "chatId"=$2 and "seriesId"=$3';
    client.query(text, values).then(res => {
    callback(res.rowCount);
    
