@@ -565,28 +565,28 @@ const client = new Client({
         for (let index = offset; index < offset + 20; index++) {
             var obj = [];
             if (index % 2 == 0) {
-                if (info[index]) {
+                if (res.rows[index]) {
                     obj.push({
-                        text: info[index].seriesName,
-                        callback_data: "seriesinfoepisodes:" + info[index].seriesId
+                        text: res.rows[index].seriesName,
+                        callback_data: "seriesinfoepisodes:" + res.rows[index].seriesId
                     });
                     seriesKB.push(obj);
                 }
             } else {
-                if (info[index]) {
+                if (res.rows[index]) {
                     seriesKB[seriesKB.length - 1].push({
-                        text: info[index].seriesName,
-                        callback_data: "seriesinfoepisodes:" + info[index].seriesId
+                        text: res.rows[index].seriesName,
+                        callback_data: "seriesinfoepisodes:" + res.rows[index].seriesId
                     });
                 }
             }
         }
-        if (offset == 0 && offset + 20 < info.length) {
+        if (offset == 0 && offset + 20 < res.rowCount) {
             seriesKB.push([{
                 text: "Next",
                 callback_data: "nextpagemyseries"
             }]);
-        } else if (offset + 20 < info.length) {
+        } else if (offset + 20 < res.rowCount) {
             seriesKB.push([{
                     text: "Prev",
                     callback_data: "prevpagemyseries"
@@ -596,7 +596,7 @@ const client = new Client({
                     callback_data: "nextpagemyseries"
                 }
             ]);
-        } else if (offset + 20 > info.length && info.length > 20) {
+        } else if (offset + 20 > res.rowCount && res.rowCount > 20) {
             seriesKB.push([{
                 text: "Prev",
                 callback_data: "prevpagemyseries"
