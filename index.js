@@ -440,9 +440,10 @@ function FollowSeries(seriesname, seriesid, chatId,callback) {
     client.query(text, values).then(res => {
     
     callback(res.rowCount);
+    client.end();
   })
   .catch(e => console.error(e.stack))
-  client.end();
+ 
     //let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
   // let info = query.run(chatId, seriesid, seriesname, null);
    // db.close();
@@ -476,9 +477,10 @@ function isWatchingSeries(chatId, seriesId,callback) {
        callback(true);
        else
        callback(false);
+       client.end();
      })
      .catch(e => console.error(e.stack))
-     client.end();
+     
 
 }
 
@@ -590,10 +592,12 @@ function MySeries(chatId, page, callback) {
             }]);
         }
         callback(seriesKB, null);
+        
     }
+    client.end();
  })
  .catch(e => console.error(e.stack))
- client.end();
+ 
    
 
 }
@@ -635,8 +639,8 @@ function SeriesInfoEpisodes(id, chatId, callback) {
     ]
 }
 
-callback(messagetext, infoKB);}) .catch(e => console.error(e.stack))
-client.end;
+callback(messagetext, infoKB); client.end;}) .catch(e => console.error(e.stack))
+
    
 }
 
@@ -652,9 +656,10 @@ function UpdateSeriesNotes(chatId, seriesId, notes,callback) {
    const text="update watchedseries set nextEpisode=$1 where chatId=$2 and seriesId=$3";
    client.query(text, values).then(res => {
    callback(res.rowCount);
+   client.end();
  })
  .catch(e => console.error(e.stack))
- client.end();
+
     
 
 
