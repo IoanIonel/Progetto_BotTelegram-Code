@@ -479,11 +479,11 @@ const client = new Client({
        const values = [chatId, seriesId];
        const text='SELECT "seriesName" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
        client.query(text, values).then(res => {
-       if(res.rowCount==1)
+       if(res.rows.length==1)
        callback(true);
        else
        callback(false);
-       
+       console.log(res.rows.length);
      })
      .catch(e => console.error(e.stack))
      
@@ -559,7 +559,7 @@ const client = new Client({
    const values = [chatId];
    const text='SELECT "seriesName" , "seriesId" FROM watchedseries WHERE "chatId"=$1 ORDER By "seriesName"';
    client.query(text, values).then(res => {
-    if (res.rowCount == 0)
+    if (res.rows.length == 0)
         callback(null, "error");
     else {
         for (let index = offset; index < offset + 20; index++) {
@@ -581,12 +581,12 @@ const client = new Client({
                 }
             }
         }
-        if (offset == 0 && offset + 20 < res.rowCount) {
+        if (offset == 0 && offset + 20 < res.rows.length) {
             seriesKB.push([{
                 text: "Next",
                 callback_data: "nextpagemyseries"
             }]);
-        } else if (offset + 20 < res.rowCount) {
+        } else if (offset + 20 < res.rows.length) {
             seriesKB.push([{
                     text: "Prev",
                     callback_data: "prevpagemyseries"
@@ -596,7 +596,7 @@ const client = new Client({
                     callback_data: "nextpagemyseries"
                 }
             ]);
-        } else if (offset + 20 > res.rowCount && res.rowCount > 20) {
+        } else if (offset + 20 > res.rows.length && res.rows.length > 20) {
             seriesKB.push([{
                 text: "Prev",
                 callback_data: "prevpagemyseries"
