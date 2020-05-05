@@ -1,3 +1,4 @@
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 const { Client } = require('pg');  ////serve per utilizzare PostgreSQL (utilizato dal servizio utilizzato per il deploy)
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
