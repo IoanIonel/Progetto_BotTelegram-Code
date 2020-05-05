@@ -1,7 +1,13 @@
+const { Client } = require('pg');  ////serve per utilizzare PostgreSQL (utilizato dal servizio utilizzato per il deploy)
+
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: true,
+});
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
-const Database = require('better-sqlite3');
+//const Database = require('better-sqlite3'); utilizzato solo in locale
 const bot = new TelegramBot(token, {
     polling: true
 });
@@ -179,7 +185,8 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         var info = data.split(':')[1]; //la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie;nomeDellaSerie"
         var seriesId = info.split(';')[0];
         var seriesName = info.split(';')[1]; //il nome della serie serve nella funzione FollowSeries (aggiunta al database). Inutile effettuare una'altra richiesta GET soltanto per avere il nome
-        var changes = FollowSeries(seriesName, seriesId, chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
+        var changes; 
+        FollowSeries(seriesName, seriesId, chatId,function(res){changes=res;}); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
         if (changes == 1) {
 
             bot.answerCallbackQuery(callbackQuery.id).then(bot.editMessageReplyMarkup({
@@ -337,7 +344,8 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         }).then(function (sended) {
             bot.onReplyToMessage(chatId, sended.message_id, function (message) {
                 //quando l'utente risponde al messaggio del bot, viene chiamata la funzione UpdateSeriesNotes che aggiorna/aggiunge degli appunti (nel database)
-                let changes = UpdateSeriesNotes(chatId, seriesId, message.text);
+                var changes; 
+                UpdateSeriesNotes(chatId, seriesId, message.text,function(res){changes=res;});
                 if (changes == 1) {
                     bot.deleteMessage(chatId, message.message_id);
                     bot.deleteMessage(chatId, sended.message_id);
@@ -389,7 +397,9 @@ function SeriesInfoDetails(id, chatId, callback) {
                 "...\nFor more info: " + url;
             var image = json.tvShow.image_thumbnail_path ? json.tvShow.image_thumbnail_path : "https://static.episodate.com/images/no-image.png";
             var infoKB;
-            if (isWatchingSeries(chatId, id) == false) {
+            var boolean;
+            isWatchingSeries(chatId, id,function(res){boolean=res;});
+             if(!boolean){
                 infoKB = [
                     [{
                             text: "Back",
@@ -421,23 +431,33 @@ function replaceAll(str, search, replace) {
     return str.split(search).join(replace);
 }
 
-function FollowSeries(seriesname, seriesid, chatId) {
-    try{
-    let db = new Database('./myseries.db');
-    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
-    let info = query.run(chatId, seriesid, seriesname, null);
-    db.close();
+function FollowSeries(seriesname, seriesid, chatId,callback) {
+    
+    //let db = new Database('./myseries.db');
+    client.connect();
+    const values = [chatId, seriesid,seriesname,null];
+    const text="INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES($1,$2,$3,$4)";
+    client.query(text, values).then(res => {
+    
+    callback(res.rowCount);
+  })
+  .catch(e => console.error(e.stack))
+  client.end();
+    //let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
+  // let info = query.run(chatId, seriesid, seriesname, null);
+   // db.close();
 
-    return info.changes;
+   /* return info.changes;
     }
     catch(error)
     {
         console.log(error);
     }
+    */
 }
 
-function isWatchingSeries(chatId, seriesId) {
-    let db = new Database('./myseries.db');
+function isWatchingSeries(chatId, seriesId,callback) {
+   /* let db = new Database('./myseries.db');
 
 
     let query = db.prepare("SELECT seriesName FROM watchedseries WHERE chatId=? AND seriesId=?");
@@ -447,6 +467,18 @@ function isWatchingSeries(chatId, seriesId) {
         return true;
     else
         return false;
+        */
+       client.connect();
+       const values = [chatId, seriesId];
+       const text="SELECT seriesName FROM watchedseries WHERE chatId=$1 AND seriesId=$2";
+       client.query(text, values).then(res => {
+       if(res.rowCount==1)
+       callback(true);
+       else
+       callback(false);
+     })
+     .catch(e => console.error(e.stack))
+     client.end();
 
 }
 
@@ -503,14 +535,18 @@ function MostPopular(page, callback) {
 }
 
 function MySeries(chatId, page, callback) {
-    let db = new Database('./myseries.db');
+    /*let db = new Database('./myseries.db');
     let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=? ORDER By seriesName");
     let info = query.all(chatId);
-    var seriesKB = [];
-    var offset = (page - 1) * 20;
     db.close();
-    if (info.length == 0)
-
+    */
+   var offset = (page - 1) * 20;
+   var seriesKB = [];
+   client.connect();
+   const values = [chatId];
+   const text="SELECT seriesName,seriesId FROM watchedseries WHERE chatId=$1 ORDER By seriesName";
+   client.query(text, values).then(res => {
+    if (res.rowCount == 0)
         callback(null, "error");
     else {
         for (let index = offset; index < offset + 20; index++) {
@@ -555,51 +591,71 @@ function MySeries(chatId, page, callback) {
         }
         callback(seriesKB, null);
     }
+ })
+ .catch(e => console.error(e.stack))
+ client.end();
+   
 
 }
 
 function SeriesInfoEpisodes(id, chatId, callback) {
-    let db = new Database('./myseries.db');
+    /*let db = new Database('./myseries.db');
     let query = db.prepare("SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=? AND seriesId=?");
     let info = query.all(chatId, id);
     db.close();
-    var infoKB;
-    var messagetext;
-    if (info[0].nextEpisode) {
-        messagetext = "The next episode of " + info[0].seriesName + " you have to watch is: " + info[0].nextEpisode;
-        infoKB = [
-            [{
-                text: "Back",
-                callback_data: "back"
-            }],
-            [{
-                text: "Update your episodes notes",
-                callback_data: "seriesnotes:" + id
-            }]
-        ]
-    } else {
-        messagetext = "There are no episodes notes for " + info[0].seriesName;
-        infoKB = [
-            [{
-                text: "Back",
-                callback_data: "back"
-            }],
-            [{
-                text: "Add some episode notes",
-                callback_data: "seriesnotes:" + id
-            }]
-        ]
-    }
-    callback(messagetext, infoKB);
+    */
+   var infoKB;
+   var messagetext;
+   client.connect();
+   const values = [chatId,id];
+   const text="SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=$1 AND seriesId=$2";
+   client.query(text, values).then(res => { if (res.rows[0].nextEpisode) {
+    messagetext = "The next episode of " + res.rows[0].seriesName + " you have to watch is: " + res.rows[0].nextEpisode;
+    infoKB = [
+        [{
+            text: "Back",
+            callback_data: "back"
+        }],
+        [{
+            text: "Update your episodes notes",
+            callback_data: "seriesnotes:" + id
+        }]
+    ]
+} else {
+    messagetext = "There are no episodes notes for " + res.rows[0].seriesName;
+    infoKB = [
+        [{
+            text: "Back",
+            callback_data: "back"
+        }],
+        [{
+            text: "Add some episode notes",
+            callback_data: "seriesnotes:" + id
+        }]
+    ]
 }
 
-function UpdateSeriesNotes(chatId, seriesId, notes) {
+callback(messagetext, infoKB);}) .catch(e => console.error(e.stack))
+client.end;
+   
+}
 
-    let db = new Database('./myseries.db');
+function UpdateSeriesNotes(chatId, seriesId, notes,callback) {
+
+   /* let db = new Database('./myseries.db');
     let query = db.prepare("update watchedseries set nextEpisode=? where chatId=? and seriesId=?");
     let info = query.run(notes, chatId, seriesId);
     db.close();
-    return info.changes;
+    */
+   client.connect();
+   const values = [notes, chatId,seriesId];
+   const text="update watchedseries set nextEpisode=$1 where chatId=$2 and seriesId=$3";
+   client.query(text, values).then(res => {
+   callback(res.rowCount);
+ })
+ .catch(e => console.error(e.stack))
+ client.end();
+    
 
 
 
