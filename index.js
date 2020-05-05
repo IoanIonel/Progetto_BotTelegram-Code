@@ -1,9 +1,4 @@
 const { Client } = require('pg');  ////serve per utilizzare PostgreSQL (utilizato dal servizio utilizzato per il deploy)
-
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: true,
-});
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
@@ -434,6 +429,11 @@ function replaceAll(str, search, replace) {
 function FollowSeries(seriesname, seriesid, chatId,callback) {
     
     //let db = new Database('./myseries.db');
+    
+const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+  });
     client.connect();
     const values = [chatId, seriesid,seriesname,null];
     const text="INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES($1,$2,$3,$4)";
@@ -469,6 +469,11 @@ function isWatchingSeries(chatId, seriesId,callback) {
     else
         return false;
         */
+       
+const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+  });
        client.connect();
        const values = [chatId, seriesId];
        const text="SELECT seriesName FROM watchedseries WHERE chatId=$1 AND seriesId=$2";
@@ -544,6 +549,11 @@ function MySeries(chatId, page, callback) {
     */
    var offset = (page - 1) * 20;
    var seriesKB = [];
+   
+const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+  });
    client.connect();
    const values = [chatId];
    const text="SELECT seriesName,seriesId FROM watchedseries WHERE chatId=$1 ORDER By seriesName";
@@ -610,6 +620,11 @@ function SeriesInfoEpisodes(id, chatId, callback) {
     */
    var infoKB;
    var messagetext;
+   
+const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+  });
    client.connect();
    const values = [chatId,id];
    const text="SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=$1 AND seriesId=$2";
@@ -651,6 +666,11 @@ function UpdateSeriesNotes(chatId, seriesId, notes,callback) {
     let info = query.run(notes, chatId, seriesId);
     db.close();
     */
+   
+const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+  });
    client.connect();
    const values = [notes, chatId,seriesId];
    const text="update watchedseries set nextEpisode=$1 where chatId=$2 and seriesId=$3";
