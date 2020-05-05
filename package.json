@@ -11,9 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.16.2",
-    "better-sqlite3": "^7.0.1",
     "node-telegram-bot-api": "^0.40.0",
-    "pg": "^8.0.3",
-    "sqlite3": "^4.2.0"
+    "pg": "^8.0.3"
   }
 }
