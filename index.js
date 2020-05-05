@@ -327,7 +327,9 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
     }
     if (data.includes("seriesnotes")) { //i dati contengono la parola 'seriesnotes' quando si preme su un bottone "Add notes" oppure "Update notes" all'interno dell'interfaccia che mostra 
 //gli appunti presi per una serie 
-        let seriesId = data.split(':')[1];
+        let seiresInfo = data.split(':')[1];
+        let seriesId=seiresInfo.split(';')[0];
+        let seriesName=seiresInfo.split(';')[1];
 
         bot.answerCallbackQuery(callbackQuery.id).then(bot.sendMessage(chatId, "Insert your notes:", {
             //dico all'interfaccia che sto 'rispondendo' alla callback, quindi invio un messaggio che invita l'utente a scrivere i suoi appunti
@@ -346,8 +348,9 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                     //se ci sono cambiamenti, viene cancellato sia il messaggio di 'richiesta' di appunti del bot sia la risposta dell'utente per tenere la chat più 'pulita'
                   
                         msg.reply_markup.inline_keyboard[1][0].text="Update your episodes notes"; //per evitare di effettuare altre query per aggiornare l'interfaccia, visto che abbiamo la certezza
-                       msg.text= " "+msg.text.split(msg.text.split(':')[1]).join(message.text); //che l'operazione è andata a buon fine (changes è uguale a 1), modifichiamo il vecchio messaggio
-                        bot.editMessageText(msg.text, {
+                       msg.text= "The next episode of " + seriesName + " you have to watch is: " + message.text; //che l'operazione è andata a buon fine (changes è uguale a 1), modifichiamo il vecchio messaggio
+                       
+                       bot.editMessageText(msg.text, {
                             chat_id: chatId,
                             message_id: msg.message_id,
                             reply_markup: {
@@ -584,7 +587,7 @@ function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti pres
             }],
             [{
                 text: "Update your episodes notes",
-                callback_data: "seriesnotes:" + id
+                callback_data: "seriesnotes:" + id+";"+info[0].seriesName
             }]
         ]
     } else { //nel caso in cui non abbia nessun valore, cambia il messaggio e il testo di uno dei bottoni. 
@@ -597,7 +600,7 @@ function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti pres
             }],
             [{
                 text: "Add some episode notes",
-                callback_data: "seriesnotes:" + id
+                callback_data: "seriesnotes:" + id+";"+info[0].seriesName
             }]
         ]
     }
