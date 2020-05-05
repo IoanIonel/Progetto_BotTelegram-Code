@@ -477,7 +477,7 @@ const client = new Client({
   });
        client.connect();
        const values = [chatId, seriesId];
-       const text='SELECT seriesName FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
+       const text='SELECT "seriesName" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
        client.query(text, values).then(res => {
        if(res.rowCount==1)
        callback(true);
