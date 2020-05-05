@@ -152,17 +152,18 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
 
             break;
         case "seriesinfoepisodes": { //siamo nel caso in cui è stato premuto su un bottone all'interno della lista di delle serie seguite
-            bot.answerCallbackQuery(callbackQuery.id).then(SeriesInfoEpisodes(seriesId, chatId, function (messagetext, keyboard) {
-                //dico all'interfaccia che sto 'rispondendo' alla callback, quindi chiamo la funzione che mi ritorna i vari appunti (per esempio il prossimo episodio da vedere) di una serie
-                //all'interno di una callback sotto forma di un messaggio e un InlineKeyboardButton[][]
-                bot.sendMessage(chatId, messagetext, {
+            bot.answerCallbackQuery(callbackQuery.id).then(function(){
+                
+                let info = SeriesInfoEpisodes(seriesId, chatId); //prendiamo dal database le informazioni riguardo gli appunti presi 
+                //il valore di ritorno(array) contiene il messaggio da mandare e l'oggetto di tipo InlineKeyboardButton[][]
+                
+                bot.sendMessage(chatId, info[0], {
                     reply_markup: {
-                        inline_keyboard: keyboard
+                        inline_keyboard: info[1]
                     }
                 });
-
-            }));
-        }
+            })
+            }
         break;
         }
 
@@ -343,17 +344,16 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                     bot.deleteMessage(chatId, message.message_id);
                     bot.deleteMessage(chatId, sended.message_id);
                     //se ci sono cambiamenti, viene cancellato sia il messaggio di 'richiesta' di appunti del bot sia la risposta dell'utente per tenere la chat più 'pulita'
-                    SeriesInfoEpisodes(seriesId, chatId, function (messagetext, keyboard) {
-                        //successivamente viene aggiornato il messaggio iniziale, ovvero l'interfaccia che mostrava gli appunti presi per una serie
-                        //i valori tornati dalla callback sono sotto forma di un messaggio e un InlineKeyboardButton[][]
-                        bot.editMessageText(messagetext, {
+                  
+                        msg.reply_markup.inline_keyboard[1][0].text="Update your episodes notes"; //per evitare di effettuare altre query per aggiornare l'interfaccia, visto che abbiamo la certezza
+                       msg.text= " "+msg.text.split(msg.text.split(':')[1]).join(message.text); //che l'operazione è andata a buon fine (changes è uguale a 1), modifichiamo il vecchio messaggio
+                        bot.editMessageText(msg.text, {
                             chat_id: chatId,
                             message_id: msg.message_id,
                             reply_markup: {
-                                inline_keyboard: keyboard
+                                inline_keyboard: msg.reply_markup.inline_keyboard
                             }
                         }).catch(err=>{console.error(err);});
-                    });
                 }
 
             });
@@ -567,13 +567,14 @@ function MySeries(chatId, page, callback) { //funzione che mostra le serie segui
 
 }
 
-function SeriesInfoEpisodes(id, chatId, callback) { //funzione che mostra gli appunti presi per una serie. Richiede la connessione al database
+function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti presi per una serie. Richiede la connessione al database
     let db = new Database('./myseries.db');
     let query = db.prepare("SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=? AND seriesId=?");
     let info = query.all(chatId, id);
     db.close();
     var infoKB;
     var messagetext;
+    var answer=[]; //uso un array per ritornare i dati
     if (info[0].nextEpisode) { //se questo campo ha valore (inizialmente è nullo), allora viene mostrato un messaggio insieme a un tasto per tornare indietro e un tasto per cambiare gli appunti
         messagetext = "The next episode of " + info[0].seriesName + " you have to watch is: " + info[0].nextEpisode;
         infoKB = [
@@ -600,7 +601,8 @@ function SeriesInfoEpisodes(id, chatId, callback) { //funzione che mostra gli ap
             }]
         ]
     }
-    callback(messagetext, infoKB); //infine chiamo la funzione passata come parametro, passandole il testo del messaggio e i due bottoni
+    answer.push(messagetext,infoKB);
+    return answer; //ritorno le mie variabili
 }
 
 function UpdateSeriesNotes(chatId, seriesId, notes) { //funzione che modifica o aggiunge degli appunti presi per una serie
