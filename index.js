@@ -440,9 +440,9 @@ const client = new Client({
     client.query(text, values).then(res => {
     
     callback(res.rowCount);
-    client.end();
+    
   })
-  .catch(e => console.error(e.stack))
+  .catch(e => console.error(e.stack) )
  
     //let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
   // let info = query.run(chatId, seriesid, seriesname, null);
@@ -482,7 +482,7 @@ const client = new Client({
        callback(true);
        else
        callback(false);
-       client.end();
+       
      })
      .catch(e => console.error(e.stack))
      
@@ -604,7 +604,7 @@ const client = new Client({
         callback(seriesKB, null);
         
     }
-    client.end();
+    
  })
  .catch(e => console.error(e.stack))
  
@@ -676,7 +676,7 @@ const client = new Client({
    const text="update watchedseries set nextEpisode=$1 where chatId=$2 and seriesId=$3";
    client.query(text, values).then(res => {
    callback(res.rowCount);
-   client.end();
+   
  })
  .catch(e => console.error(e.stack))
 
