@@ -1,5 +1,7 @@
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
-const { Client } = require('pg');  ////serve per utilizzare PostgreSQL (utilizato dal servizio utilizzato per il deploy)
+const {
+    Client
+} = require('pg'); ////serve per utilizzare PostgreSQL (utilizato dal servizio utilizzato per il deploy)
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
@@ -181,27 +183,26 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         var info = data.split(':')[1]; //la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie;nomeDellaSerie"
         var seriesId = info.split(';')[0];
         var seriesName = info.split(';')[1]; //il nome della serie serve nella funzione FollowSeries (aggiunta al database). Inutile effettuare una'altra richiesta GET soltanto per avere il nome
-        var changes; 
-        FollowSeries(seriesName, seriesId, chatId,function(res){changes=res;}); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
-        if (changes == 1) {
+        
+        FollowSeries(seriesName, seriesId, chatId, function (res) {
+            if (res == 1) {
 
-            bot.answerCallbackQuery(callbackQuery.id).then(bot.editMessageReplyMarkup({
-                //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva il bottone 'Follow'
-                //in questo modo quel messaggio che prima conteneva le informazioni di una serie, un tasto 'Back' e un tasto 'Follow', ora non contiene più quest'ultimo tasto 
-                inline_keyboard: [
-                    [{
-                        text: "Back",
-                        callback_data: "back"
-                    }]
-                ]
-            }, {
-                chat_id: chatId,
-                message_id: msg.message_id
-            }));
-
-        } else {
-            bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
-        }
+                bot.answerCallbackQuery(callbackQuery.id).then(bot.editMessageReplyMarkup({
+                    //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva il bottone 'Follow'
+                    //in questo modo quel messaggio che prima conteneva le informazioni di una serie, un tasto 'Back' e un tasto 'Follow', ora non contiene più quest'ultimo tasto 
+                    inline_keyboard: [
+                        [{
+                            text: "Back",
+                            callback_data: "back"
+                        }]
+                    ]
+                }, {
+                    chat_id: chatId,
+                    message_id: msg.message_id
+                }));
+    
+            }
+        }); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
     }
 
     if (data.includes("nextpage")) { //i dati contengono la parola 'nextpage' se è stato premuto sul bottone 'Next' nelle interfacce contenenti liste
@@ -327,7 +328,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         }
     }
     if (data.includes("seriesnotes")) { //i dati contengono la parola 'seriesnotes' quando si preme su un bottone "Add notes" oppure "Update notes" all'interno dell'interfaccia che mostra 
-//gli appunti presi per una serie 
+        //gli appunti presi per una serie 
         let seriesId = data.split(':')[1];
 
         bot.answerCallbackQuery(callbackQuery.id).then(bot.sendMessage(chatId, "Insert your notes:", {
@@ -340,29 +341,25 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         }).then(function (sended) {
             bot.onReplyToMessage(chatId, sended.message_id, function (message) {
                 //quando l'utente risponde al messaggio del bot, viene chiamata la funzione UpdateSeriesNotes che aggiorna/aggiunge degli appunti (nel database)
-                var changes; 
-                UpdateSeriesNotes(chatId, seriesId, message.text,function(res){changes=res;});
-                if (changes == 1) {
-                    bot.deleteMessage(chatId, message.message_id);
-                    bot.deleteMessage(chatId, sended.message_id);
-                    //se ci sono cambiamenti, viene cancellato sia il messaggio di 'richiesta' di appunti del bot sia la risposta dell'utente per tenere la chat più 'pulita'
-                    SeriesInfoEpisodes(seriesId, chatId, function (messagetext, keyboard) {
-                        //successivamente viene aggiornato il messaggio iniziale, ovvero l'interfaccia che mostrava gli appunti presi per una serie
-                        //i valori tornati dalla callback sono sotto forma di un messaggio e un InlineKeyboardButton[][]
-                        bot.editMessageText(messagetext, {
-                            chat_id: chatId,
-                            message_id: msg.message_id,
-                            reply_markup: {
-                                inline_keyboard: keyboard
-                            }
+                
+                UpdateSeriesNotes(chatId, seriesId, message.text, function (res) {
+                    if (res == 1) {
+                        bot.deleteMessage(chatId, message.message_id);
+                        bot.deleteMessage(chatId, sended.message_id);
+                        //se ci sono cambiamenti, viene cancellato sia il messaggio di 'richiesta' di appunti del bot sia la risposta dell'utente per tenere la chat più 'pulita'
+                        SeriesInfoEpisodes(seriesId, chatId, function (messagetext, keyboard) {
+                            //successivamente viene aggiornato il messaggio iniziale, ovvero l'interfaccia che mostrava gli appunti presi per una serie
+                            //i valori tornati dalla callback sono sotto forma di un messaggio e un InlineKeyboardButton[][]
+                            bot.editMessageText(messagetext, {
+                                chat_id: chatId,
+                                message_id: msg.message_id,
+                                reply_markup: {
+                                    inline_keyboard: keyboard
+                                }
+                            });
                         });
-                    });
-                }
-                else
-                {
-                    console.log("dopo");
-                }
-
+                    }
+                });
             });
         }));
     }
@@ -397,30 +394,32 @@ function SeriesInfoDetails(id, chatId, callback) {
                 "...\nFor more info: " + url;
             var image = json.tvShow.image_thumbnail_path ? json.tvShow.image_thumbnail_path : "https://static.episodate.com/images/no-image.png";
             var infoKB;
-            var boolean;
-            isWatchingSeries(chatId, id,function(res){boolean=res;});
-             if(boolean==false){
-                infoKB = [
-                    [{
+            
+            isWatchingSeries(chatId, id, function (res) {
+                if (res == false) {
+                    infoKB = [
+                        [{
+                                text: "Back",
+                                callback_data: "back"
+                            },
+                            {
+                                text: "Follow",
+                                callback_data: "followseries:" + id + ";" + replaceAll(json.tvShow.name, ":", "").substring(0, 64)
+                            }
+                        ]
+                    ];
+                } else {
+                    infoKB = [
+                        [{
                             text: "Back",
                             callback_data: "back"
-                        },
-                        {
-                            text: "Follow",
-                            callback_data: "followseries:" + id + ";" + replaceAll(json.tvShow.name, ":", "").substring(0, 64)
-                        }
-                    ]
-                ];
-            } else {
-                infoKB = [
-                    [{
-                        text: "Back",
-                        callback_data: "back"
-                    }]
-                ];
-            }
-
-            callback(infoKB, image, captionText);
+                        }]
+                    ];
+                }
+    
+                callback(infoKB, image, captionText);
+            });
+      
         })
         .catch(error => {
             console.log(error);
@@ -431,66 +430,66 @@ function replaceAll(str, search, replace) {
     return str.split(search).join(replace);
 }
 
-function FollowSeries(seriesname, seriesid, chatId,callback) {
-    
-    //let db = new Database('./myseries.db');
-    
-const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: true,
-  });
-    client.connect();
-    const values = [chatId, seriesid,seriesname,null];
-    const text='INSERT INTO watchedseries ("chatId", "seriesId", "seriesName", "nextEpisode") VALUES($1,$2,$3,$4)';
-    client.query(text, values).then(res => {
-    
-    callback(res.rowCount);
-    
-  })
-  .catch(e => console.error(e.stack) )
- 
-    //let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
-  // let info = query.run(chatId, seriesid, seriesname, null);
-   // db.close();
+function FollowSeries(seriesname, seriesid, chatId, callback) {
 
-   /* return info.changes;
-    }
-    catch(error)
-    {
-        console.log(error);
-    }
-    */
+    //let db = new Database('./myseries.db');
+
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: true,
+    });
+    client.connect();
+    const values = [chatId, seriesid, seriesname, null];
+    const text = 'INSERT INTO watchedseries ("chatId", "seriesId", "seriesName", "nextEpisode") VALUES($1,$2,$3,$4)';
+    client.query(text, values).then(res => {
+
+            callback(res.rowCount);
+
+        })
+        .catch(e => console.error(e.stack))
+
+    //let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
+    // let info = query.run(chatId, seriesid, seriesname, null);
+    // db.close();
+
+    /* return info.changes;
+     }
+     catch(error)
+     {
+         console.log(error);
+     }
+     */
 }
 
-function isWatchingSeries(chatId, seriesId,callback) {
-   /* let db = new Database('./myseries.db');
+function isWatchingSeries(chatId, seriesId, callback) {
+    /* let db = new Database('./myseries.db');
 
 
-    let query = db.prepare("SELECT seriesName FROM watchedseries WHERE chatId=? AND seriesId=?");
-    let info = query.get(chatId, seriesId);
-    db.close();
-    if (info != null)
-        return true;
-    else
-        return false;
-        */
-       
-const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: true,
-  });
-       client.connect();
-       const values = [chatId, seriesId];
-       const text='SELECT "seriesName" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
-       client.query(text, values).then(res => {
-       if(res.rows.length==1)
-       callback(true);
-       else
-       callback(false);
-       console.log(res.rows.length);
-     })
-     .catch(e => console.error(e.stack))
-     
+     let query = db.prepare("SELECT seriesName FROM watchedseries WHERE chatId=? AND seriesId=?");
+     let info = query.get(chatId, seriesId);
+     db.close();
+     if (info != null)
+         return true;
+     else
+         return false;
+         */
+
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: true,
+    });
+    client.connect();
+    const values = [chatId, seriesId];
+    const text = 'SELECT "seriesName" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
+    client.query(text, values).then(res => {
+            if (res.rows.length == 1)
+                callback(true);
+            else
+                callback(false);
+            console.log(res.rows.length);
+        })
+        .catch(e => console.error(e.stack))
+
 
 }
 
@@ -552,68 +551,68 @@ function MySeries(chatId, page, callback) {
     let info = query.all(chatId);
     db.close();
     */
-   var offset = (page - 1) * 20;
-   var seriesKB = [];
-   
-const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: true,
-  });
-   client.connect();
-   const values = [chatId];
-   const text='SELECT "seriesName" , "seriesId" FROM watchedseries WHERE "chatId"=$1 ORDER By "seriesName"';
-   client.query(text, values).then(res => {
-    if (res.rows.length == 0)
-        callback(null, "error");
-    else {
-        for (let index = offset; index < offset + 20; index++) {
-            var obj = [];
-            if (index % 2 == 0) {
-                if (res.rows[index]) {
-                    obj.push({
-                        text: res.rows[index].seriesName,
-                        callback_data: "seriesinfoepisodes:" + res.rows[index].seriesId
-                    });
-                    seriesKB.push(obj);
+    var offset = (page - 1) * 20;
+    var seriesKB = [];
+
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: true,
+    });
+    client.connect();
+    const values = [chatId];
+    const text = 'SELECT "seriesName" , "seriesId" FROM watchedseries WHERE "chatId"=$1 ORDER By "seriesName"';
+    client.query(text, values).then(res => {
+            if (res.rows.length == 0)
+                callback(null, "error");
+            else {
+                for (let index = offset; index < offset + 20; index++) {
+                    var obj = [];
+                    if (index % 2 == 0) {
+                        if (res.rows[index]) {
+                            obj.push({
+                                text: res.rows[index].seriesName,
+                                callback_data: "seriesinfoepisodes:" + res.rows[index].seriesId
+                            });
+                            seriesKB.push(obj);
+                        }
+                    } else {
+                        if (res.rows[index]) {
+                            seriesKB[seriesKB.length - 1].push({
+                                text: res.rows[index].seriesName,
+                                callback_data: "seriesinfoepisodes:" + res.rows[index].seriesId
+                            });
+                        }
+                    }
                 }
-            } else {
-                if (res.rows[index]) {
-                    seriesKB[seriesKB.length - 1].push({
-                        text: res.rows[index].seriesName,
-                        callback_data: "seriesinfoepisodes:" + res.rows[index].seriesId
-                    });
+                if (offset == 0 && offset + 20 < res.rows.length) {
+                    seriesKB.push([{
+                        text: "Next",
+                        callback_data: "nextpagemyseries"
+                    }]);
+                } else if (offset + 20 < res.rows.length) {
+                    seriesKB.push([{
+                            text: "Prev",
+                            callback_data: "prevpagemyseries"
+                        },
+                        {
+                            text: "Next",
+                            callback_data: "nextpagemyseries"
+                        }
+                    ]);
+                } else if (offset + 20 > res.rows.length && res.rows.length > 20) {
+                    seriesKB.push([{
+                        text: "Prev",
+                        callback_data: "prevpagemyseries"
+                    }]);
                 }
+                callback(seriesKB, null);
+
             }
-        }
-        if (offset == 0 && offset + 20 < res.rows.length) {
-            seriesKB.push([{
-                text: "Next",
-                callback_data: "nextpagemyseries"
-            }]);
-        } else if (offset + 20 < res.rows.length) {
-            seriesKB.push([{
-                    text: "Prev",
-                    callback_data: "prevpagemyseries"
-                },
-                {
-                    text: "Next",
-                    callback_data: "nextpagemyseries"
-                }
-            ]);
-        } else if (offset + 20 > res.rows.length && res.rows.length > 20) {
-            seriesKB.push([{
-                text: "Prev",
-                callback_data: "prevpagemyseries"
-            }]);
-        }
-        callback(seriesKB, null);
-        
-    }
-    
- })
- .catch(e => console.error(e.stack))
- 
-   
+
+        })
+        .catch(e => console.error(e.stack))
+
+
 
 }
 
@@ -623,69 +622,72 @@ function SeriesInfoEpisodes(id, chatId, callback) {
     let info = query.all(chatId, id);
     db.close();
     */
-   var infoKB;
-   var messagetext;
-   
-const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: true,
-  });
-   client.connect();
-   const values = [chatId,id];
-   const text='SELECT "seriesName","nextEpisode" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
-   client.query(text, values).then(res => { if (res.rows[0].nextEpisode) {
-    messagetext = "The next episode of " + res.rows[0].seriesName + " you have to watch is: " + res.rows[0].nextEpisode;
-    infoKB = [
-        [{
-            text: "Back",
-            callback_data: "back"
-        }],
-        [{
-            text: "Update your episodes notes",
-            callback_data: "seriesnotes:" + id
-        }]
-    ]
-} else {
-    messagetext = "There are no episodes notes for " + res.rows[0].seriesName;
-    infoKB = [
-        [{
-            text: "Back",
-            callback_data: "back"
-        }],
-        [{
-            text: "Add some episode notes",
-            callback_data: "seriesnotes:" + id
-        }]
-    ]
+    var infoKB;
+    var messagetext;
+
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: true,
+    });
+    client.connect();
+    const values = [chatId, id];
+    const text = 'SELECT "seriesName","nextEpisode" FROM watchedseries WHERE "chatId"=$1 AND "seriesId"=$2';
+    client.query(text, values).then(res => {
+        if (res.rows[0].nextEpisode) {
+            messagetext = "The next episode of " + res.rows[0].seriesName + " you have to watch is: " + res.rows[0].nextEpisode;
+            infoKB = [
+                [{
+                    text: "Back",
+                    callback_data: "back"
+                }],
+                [{
+                    text: "Update your episodes notes",
+                    callback_data: "seriesnotes:" + id
+                }]
+            ]
+        } else {
+            messagetext = "There are no episodes notes for " + res.rows[0].seriesName;
+            infoKB = [
+                [{
+                    text: "Back",
+                    callback_data: "back"
+                }],
+                [{
+                    text: "Add some episode notes",
+                    callback_data: "seriesnotes:" + id
+                }]
+            ]
+        }
+
+        callback(messagetext, infoKB);
+        client.end;
+    }).catch(e => console.error(e.stack))
+
+
 }
 
-callback(messagetext, infoKB); client.end;}) .catch(e => console.error(e.stack))
+function UpdateSeriesNotes(chatId, seriesId, notes, callback) {
 
-   
-}
+    /* let db = new Database('./myseries.db');
+     let query = db.prepare("update watchedseries set nextEpisode=? where chatId=? and seriesId=?");
+     let info = query.run(notes, chatId, seriesId);
+     db.close();
+     */
 
-function UpdateSeriesNotes(chatId, seriesId, notes,callback) {
+    const client = new Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: true,
+    });
+    client.connect();
+    const values = [notes, chatId, seriesId];
+    const text = 'update watchedseries set "nextEpisode"=$1 where "chatId"=$2 and "seriesId"=$3';
+    client.query(text, values).then(res => {
+            callback(res.rowCount);
 
-   /* let db = new Database('./myseries.db');
-    let query = db.prepare("update watchedseries set nextEpisode=? where chatId=? and seriesId=?");
-    let info = query.run(notes, chatId, seriesId);
-    db.close();
-    */
-   
-const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: true,
-  });
-   client.connect();
-   const values = [notes, chatId,seriesId];
-   const text='update watchedseries set "nextEpisode"=$1 where "chatId"=$2 and "seriesId"=$3';
-   client.query(text, values).then(res => {
-   callback(res.rowCount);
+        })
+        .catch(e => console.error(e.stack))
 
- })
- .catch(e => console.error(e.stack))
 
-    
 
 
 
