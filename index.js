@@ -395,7 +395,7 @@ function SeriesInfoDetails(id, chatId, callback) {
             var infoKB;
             var boolean;
             isWatchingSeries(chatId, id,function(res){boolean=res;});
-             if(!boolean){
+             if(boolean==false){
                 infoKB = [
                     [{
                             text: "Back",
@@ -677,7 +677,7 @@ const client = new Client({
    const text='update watchedseries set "nextEpisode"=$1 where "chatId"=$2 and "seriesId"=$3';
    client.query(text, values).then(res => {
    callback(res.rowCount);
-   
+   console.log(res.rowCount);
  })
  .catch(e => console.error(e.stack))
 
