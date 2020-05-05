@@ -199,7 +199,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                }));
+                }).catch(err=>{console.error(err);}));
     
             }
         }); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
@@ -221,7 +221,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                     }, {
                         chat_id: chatId,
                         message_id: msg.message_id
-                    });
+                    }).catch(err=>{console.error(err);});
 
                 }));
             }
@@ -239,7 +239,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                });
+                }).catch(err=>{console.error(err);});
             }));
         }
         break;
@@ -257,7 +257,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                });
+                }).catch(err=>{console.error(err);});
 
             }));
         }
@@ -282,7 +282,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                     }, {
                         chat_id: chatId,
                         message_id: msg.message_id
-                    });
+                    }).catch(err=>{console.error(err);});
 
                 }));
             }
@@ -300,7 +300,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                });
+                }).catch(err=>{console.error(err);});
             }));
         }
 
@@ -319,7 +319,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                });
+                }).catch(err=>{console.error(err);});
 
             }));
         }
@@ -356,7 +356,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                                 reply_markup: {
                                     inline_keyboard: keyboard
                                 }
-                            });
+                            }).catch(err=>{console.error(err);});
                         });
                     }
                 });
