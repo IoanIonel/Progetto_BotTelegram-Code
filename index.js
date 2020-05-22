@@ -167,15 +167,20 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                }).catch(err=>{console.error(err);})).then(MySeries(chatId, 1, function (keyboard) {
+                }).catch(err=>{console.error(err);})).then(function(){
+                    //controllo se nello stato delle variabili, il parametro 'mylastseries' (id dell'ultimo messaggio mostrato con le serie seguite ) ha valore
+                    let mylastseries=stateValue(chatId,"mylastseries");  
+                     
+                    //se è così, modifico quel messaggio in modo che l'interfaccia si aggiorni quando aggiungo una nuova serie
+                    if(mylastseries)
+                    {
+                    MySeries(chatId, 1, function (keyboard) {
                     //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
                     //in questo modo quel messaggio si aggiorna in modo che mostri anche la nuova serie che ho aggiunto
                     //viene passata come pagina da mostrare la prima, in quanto le serie sono mostrate in ordine decrescente (della data) di aggiunta/modifica
                     //i bottoni aggiornati verranno creati nella funzione MySeries che ritorna l'oggetto InlineKeyboardButton[][]
 
                     stateValue(chatId,"myseriespage",1); //aggiorno lo stato del numero della pagina 
-
-                     //cancello il messaggio con il tasto 'unfollow' perchè non serve più
                     
                     bot.editMessageReplyMarkup({   
                         inline_keyboard: keyboard
@@ -184,7 +189,10 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                         message_id: stateValue(chatId,"mylastseries")
                     }).catch(err=>{console.error(err);});
 
-                }));
+                });
+            }
+            
+            });
     
             } else {
                 bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
