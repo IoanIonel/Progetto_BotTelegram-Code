@@ -10,6 +10,9 @@ const bot = new TelegramBot(token, {
     polling: true
 });
 app.listen(process.env.PORT);
+app.get('/',function(req,res){
+res.send("The bot is up!");
+});
 axios.default.defaults.timeout = 20000; //dopo 20 secondi preferisco che si generi un'eccezione e che l'utente possa provare ad eseguire un'altra chiamata
 bot.onText(/\/mostwatched/, function (msg, match) {
 
