@@ -10,7 +10,7 @@ const bot = new TelegramBot(token, {
     polling: true
 });
 app.listen(process.env.PORT, function () {
-    console.log('listening on port 3000!');
+    console.log('listening on port! '+process.env.PORT);
   });
 app.get('/',function(req,res){
 res.send("The bot is up!"); //utilizzo express per effettuare richieste periodiche http per tenere 'in vita' il bot
