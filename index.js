@@ -11,22 +11,12 @@ const bot = new TelegramBot(token, {
 });
 app.listen(process.env.PORT);
 app.get('/',function(req,res){
-res.send("The bot is up!");
+res.send("The bot is up!"); //utilizzo express per effettuare richieste periodiche http per tenere 'in vita' il bot
 });
 axios.default.defaults.timeout = 20000; //dopo 20 secondi preferisco che si generi un'eccezione e che l'utente possa provare ad eseguire un'altra chiamata
 bot.onText(/\/mostwatched/, function (msg, match) {
 
-    /*   if (!state.find(x => (x.id == msg.chat.id))) { 
-           state.push({
-               "mostpopularpage": 1,
-               "searchbynamepage": 1,
-               "myseriespage": 1,
-               "search": ""
-           });
-       }
-       \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ questo mi serviva in fase di debug per non dover chiamare sempre '/start'
-       */
-    MostPopular(getStateValue(msg.chat.id,"mostpopularpage"), function (keyboard) { //==>>>> chiamo la funzione che mi mostra le serie più guardate e aspetto 
+    MostPopular(stateValue(msg.chat.id,"mostpopularpage"), function (keyboard) { //==>>>> chiamo la funzione che mi mostra le serie più guardate e aspetto 
         //il valore di ritorno keyboard(oggetto InlineKeyboardButton[][]) in una callback
 
         bot.sendMessage(msg.chat.id, "Select a series for more info!", {
@@ -40,17 +30,7 @@ bot.onText(/\/mostwatched/, function (msg, match) {
 });
 bot.onText(/\/myseries/, function (msg, match) {
 
-    /*if (!state.find(x => (x.id == msg.chat.id))) {
-        state.push({
-            "mostpopularpage": 1,
-            "searchbynamepage": 1,
-            "myseriespage": 1,
-            "search": ""
-        });
-    }
-   \\\\\\\\\\\\\\\\\\\\\\\ utile in fase di debug
-    */
-    MySeries(msg.chat.id, getStateValue(msg.chat.id,"myseriespage"), function (keyboard, err) { //==>>>> chiamo la funzione che mi mostra le serie che seguo personalmente 
+    MySeries(msg.chat.id, stateValue(msg.chat.id,"myseriespage"), function (keyboard, err) { //==>>>> chiamo la funzione che mi mostra le serie che seguo personalmente 
 
         //e aspetto il valore di ritorno keyboard(oggetto InlineKeyboardButton[][]) in una callback. Se presente il valore 'err', non seguo nessuna serie
 
@@ -62,7 +42,7 @@ bot.onText(/\/myseries/, function (msg, match) {
                     inline_keyboard: keyboard
                 }
             }).then(message=>{
-                updateState(msg.chat.id,"mylastseries",message.message_id); //mi serve sapere l'id dell'utlimo messaggio che mostra le serie seguite cosicchè nel caso 
+                stateValue(msg.chat.id,"mylastseries",message.message_id); //mi serve sapere l'id dell'utlimo messaggio che mostra le serie seguite cosicchè nel caso 
                 //in cui io smettessi di seguire una serie, potessi direttamente aggiornare il messaggio con questo id
             }).catch(error=>{console.error(error)});
         }
@@ -72,18 +52,6 @@ bot.onText(/\/myseries/, function (msg, match) {
 
 bot.onText(/\/start/, function (msg, match) {
 
-    /*if (!state.find(x => (x.id == msg.chat.id))) { //=>>>>> inizializzo lo stato citato all'inizio. 
-        state.push({
-
-            "id": msg.chat.id, //memorizzare l'id serve nella funzione 'find' per trovare il numero delle pagine di ogni utente
-            "mostpopularpage": 1, //il numero della pagina dell'interfaccia che mostra le serie più famose
-            "searchbynamepage": 1, //il numero della pagina dell'interfaccia che mostra le serie avute come risultato della ricerca. Serve solo quando bisogna cambiare pagina in quanto
-            //all'inizio di ogni ricerca viene rimesso a '1'
-            "myseriespage": 1, //il numero della pagina dell'interfaccia che mostra le serie seguite
-            "search": "" //'search'(l'ultima parola cercata) ovviamente all'inizio non ha valore
-        });
-    }
-    */
    setState(msg.chat.id);
     
     bot.sendMessage(msg.chat.id, "Welcome to this bot! \n Try out the commands and enjoy!"); //messaggio di benvenuto
@@ -92,21 +60,8 @@ bot.onText(/\/start/, function (msg, match) {
 
 bot.onText(/\/search (.+)/, (msg, match) => {
 
-    /* if (!state.find(x => (x.id == msg.chat.id))) {
-         state.push({
-             "mostpopularpage": 1,
-             "searchbynamepage": 1,
-             "myseriespage": 1,
-             "search": ""
-         });
-     }
-     utile in fase di debug
-     */
-
-    //state.find(x => (x.id == msg.chat.id)).searchbynamepage = 1;
-     //nel caso di una nuova ricerca, il valore della pagina mostrata viene rimesso a 1
     var searched = match[1]; //parola cercata
-    updateState(msg.chat.id,"searched",searched); //inizializzo l'ultima parola cercata dall'utente
+    stateValue(msg.chat.id,"searched",searched); //inizializzo l'ultima parola cercata dall'utente
     SearchByName(searched, 1,
         function (keyboard, err) { //==>>>> chiamo la funzione che mi mostra le serie che ho cercato 
 
@@ -189,10 +144,12 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
     }
 
     if (data.includes("followseries")) { //i dati contengono la parola 'followseries' se è stato premuto sul bottone 'Follow' all'interno dell'interfaccia che mostra i dettagli di una serie
-switch (data) {
+    //oppure se è stato premuto il bottone 'Unfollow' all'interno del messaggio che mostra gli appunti di una serie che si segue
+    let section=data.split(':')[0]; //la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie;nomeDellaSerie"
+    switch (section) {
     case "followseries":
         {
-            var info = data.split(':')[1]; //la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie;nomeDellaSerie"
+            var info = data.split(':')[1]; 
             var seriesId = info.split(';')[0];
             var seriesName = info.split(';')[1]; //il nome della serie serve nella funzione FollowSeries (aggiunta al database). Inutile effettuare una'altra richiesta GET soltanto per avere il nome
             var changes = FollowSeries(seriesName, seriesId, chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
@@ -210,7 +167,24 @@ switch (data) {
                 }, {
                     chat_id: chatId,
                     message_id: msg.message_id
-                }).catch(err=>{console.error(err);}));
+                }).catch(err=>{console.error(err);})).then(MySeries(chatId, 1, function (keyboard) {
+                    //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
+                    //in questo modo quel messaggio si aggiorna in modo che mostri anche la nuova serie che ho aggiunto
+                    //viene passata come pagina da mostrare la prima, in quanto le serie sono mostrate in ordine decrescente (della data) di aggiunta/modifica
+                    //i bottoni aggiornati verranno creati nella funzione MySeries che ritorna l'oggetto InlineKeyboardButton[][]
+
+                    stateValue(chatId,"myseriespage",1); //aggiorno lo stato del numero della pagina 
+
+                     //cancello il messaggio con il tasto 'unfollow' perchè non serve più
+                    
+                    bot.editMessageReplyMarkup({   
+                        inline_keyboard: keyboard
+                    }, {
+                        chat_id: chatId,
+                        message_id: stateValue(chatId,"mylastseries")
+                    }).catch(err=>{console.error(err);});
+
+                }));
     
             } else {
                 bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
@@ -222,7 +196,7 @@ switch (data) {
             {
                
                 var seriesId = data.split(':')[1];//la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie"
-                var changes = UnFollowSeries(seriesId,chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
+                var changes = UnfollowSeries(seriesId,chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
                 if (changes == 1) {
         
                     bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, 1, function (keyboard) {
@@ -230,14 +204,16 @@ switch (data) {
                         //in questo modo quel messaggio si aggiorna in modo che non mostri più la serie eliminata
                         //viene passata come pagina da mostrare la prima, in quanto non si sa se dopo aver cancellato una serie, esistano più pagine (inutile effettuare altri controlli)
                         //i bottoni aggiornati verranno creati nella funzione MySeries che ritorna l'oggetto InlineKeyboardButton[][]
-                
+
+                        stateValue(chatId,"myseriespage",1); //aggiorno lo stato del numero della pagina 
+
                          //cancello il messaggio con il tasto 'unfollow' perchè non serve più
                         bot.deleteMessage(chatId,msg.message_id).then( 
                         bot.editMessageReplyMarkup({   
                             inline_keyboard: keyboard
                         }, {
                             chat_id: chatId,
-                            message_id: getStateValue(chatId,"mylastseries")
+                            message_id: stateValue(chatId,"mylastseries")
                         })).catch(err=>{console.error(err);});
     
                     }));
@@ -256,7 +232,8 @@ switch (data) {
         switch (data) {
             case "nextpagemyseries": { //è stata cambiata la pagina all'interno della lista contenente le serie seguite
 
-                let page = updatePage(chatId,"myseriespage",'+');
+                let page = stateValue(chatId,"myseriespage",'+');
+                
                 
                 bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, page, function (keyboard) {
                     //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
@@ -275,7 +252,7 @@ switch (data) {
             break;
 
         case "nextpagemostpopular": { //è stata cambiata la pagina all'interno della lista contenente le serie più famose
-            let page = updatePage(chatId,"mostpopularpage",'+');
+            let page = stateValue(chatId,"mostpopularpage",'+');
 
             bot.answerCallbackQuery(callbackQuery.id).then(MostPopular(page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie più famose
@@ -292,8 +269,8 @@ switch (data) {
         break;
 
         case "nextpagesearchbyname": { //è stata cambiata la pagina all'interno della lista contenente le serie cercate
-            let page = updatePage(chatId,"searchbynamepage",'+');
-            let searched = getStateValue(chatId,"searched");
+            let page = stateValue(chatId,"searchbynamepage",'+');
+            let searched = stateValue(chatId,"searched");
             bot.answerCallbackQuery(callbackQuery.id).then(SearchByName(searched, page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie cercate
                 //in questo modo quel messaggio si aggiorna e mostra le prossime serie (max 20 per pagina)
@@ -317,7 +294,7 @@ switch (data) {
 
         switch (data) {
             case "prevpagemyseries": { //è stata cambiata la pagina all'interno della lista contenente le serie seguite
-                let page = updatePage(chatId,"myseriespage",'-');
+                let page = stateValue(chatId,"myseriespage",'-');
 
                 bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, page, function (keyboard, err) {
                     //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
@@ -336,7 +313,7 @@ switch (data) {
             break;
 
         case "prevpagemostpopular": { //è stata cambiata la pagina all'interno della lista contenente le serie più famose
-            let page =  updatePage(chatId,"mostpopularpage",'-');
+            let page =  stateValue(chatId,"mostpopularpage",'-');
 
             bot.answerCallbackQuery(callbackQuery.id).then(MostPopular(page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie più famose
@@ -354,8 +331,8 @@ switch (data) {
         break;
 
         case "prevpagesearchbyname": { //è stata cambiata la pagina all'interno della lista contenente le serie cercate
-            let page =  updatePage(chatId,"searchbynamepage",'-');
-            let searched = getStateValue(chatId,"searched");
+            let page =  stateValue(chatId,"searchbynamepage",'-');
+            let searched = stateValue(chatId,"searched");
 
             bot.answerCallbackQuery(callbackQuery.id).then(SearchByName(searched, page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie cercate
@@ -421,7 +398,7 @@ function SeriesInfoDetails(id, chatId, callback) { //funzione che mostra i detta
     axios.get("https://www.episodate.com/api/show-details?q=" + id)
         .then(response => {
             json = response.data;
-            var description = json.tvShow.description ? replaceAll(((json.tvShow.description)), "<br>", "").substring(0, 400) + "..." : " ";
+            var description = json.tvShow.description ? replaceAll(((json.tvShow.description)), /<br\s*[\/]?>/gi, "").substring(0, 400) + "..." : " ";
             //<br> non è un tag supportato da telegram e l'api potrebbe ritornare questo tag nella descrizione. Inoltre vengono considerati solo i primi 400 caratteri perché il 'caption' 
             //di una fota ha un limite di byte
             var seasons = json.tvShow.episodes.length != 0 ? json.tvShow.episodes[json.tvShow.episodes.length - 1].season : " ";
@@ -483,9 +460,11 @@ function replaceAll(str, search, replace) { //sostituisce tutte le occorrenze di
 function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un valore al campo 'nextEpisode' (inizialmente nullo) interpretato come 'appunti'
     let db = new Database('./myseries.db');
 
+    let current_datetime = new Date();
+    let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
 
-    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
-    let info = query.run(chatId, seriesid, seriesname, null);
+    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode, lastUpdate) VALUES(?,?,?,?,?)");
+    let info = query.run(chatId, seriesid, seriesname, null, formatted_date);
     db.close();
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
@@ -570,7 +549,7 @@ function MostPopular(page, callback) { //funzione che mostra le serie più famos
 
 function MySeries(chatId, page, callback) { //funzione che mostra le serie seguite. Richiede la connessione al database
     let db = new Database('./myseries.db'); 
-    let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=? ORDER By seriesName");
+    let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=? ORDER By lastUpdate DESC");
     let info = query.all(chatId);
     var seriesKB = []; //l'interfaccia (oggetto InlineKeyboardButton[][]) che ritorneremo 
     var offset = (page - 1) * 20; //mentre l'api tornava già un massimo di 20 righe per chiamata, in questo caso invece devo decidere qual è l'offset
@@ -679,8 +658,10 @@ function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti pres
 function UpdateSeriesNotes(chatId, seriesId, notes) { //funzione che modifica o aggiunge degli appunti presi per una serie
 
     let db = new Database('./myseries.db');
-    let query = db.prepare("update watchedseries set nextEpisode=? where chatId=? and seriesId=?");
-    let info = query.run(notes, chatId, seriesId);
+    let current_datetime = new Date();
+    let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
+    let query = db.prepare("update watchedseries set nextEpisode=?, lastUpdate=? where chatId=? and seriesId=?");
+    let info = query.run(notes,formatted_date, chatId, seriesId);
     db.close();
     return info.changes; //ritorno i cambiamenti (presenti anche se il campo è stato 'aggiornato' con lo stesso valore) per controllare che l'operazione abbia funzionato
 
@@ -741,108 +722,112 @@ function SearchByName(search, page, callback) { //funzione che ritorna le serie 
         });
 }
 
-function setState(chatId)
+function setState(chatId) //funzione utlizzata per settare lo stato iniziale di un utente oppure per resettarlo quando viene eseguito il comando '/start'
 {
 var state=JSON.parse(fs.readFileSync("state.json"));
 let x=state.find(e=>(e.id==chatId));
 if(!x)
 {
     state.push({
-        "id":chatId,
-        "mostpopularpage": 1,
-        "searchbynamepage": 1,
-        "myseriespage": 1,
-        "searched": "",
-        "mylastseries":""
+        "id":chatId, //serve per identificare lo stato (delle variabili) di ogni utente
+        "mostpopularpage": 1, //la pagina mostrata delle serie più famose
+        "searchbynamepage": 1, //la pagina mostrata dei risultati della ricerca
+        "myseriespage": 1, //la pagina mostrata delle serie seguite
+        "searched": "", //l'ultima parola cercata dell'utente
+        "mylastseries":"" //l'id dell'ultimo messaggio recante la lista con le serie seguite
     });
 }
 else
 {
-   state[state.indexOf(x)].mostpopularpage=1;
+   state[state.indexOf(x)].mostpopularpage=1; 
    state[state.indexOf(x)].searchbynamepage=1;
-   state[state.indexOf(x)].myseriespage=1;
-   state[state.indexOf(x)].searched="";
-   state[state.indexOf(x)].mylastseries="";
+   state[state.indexOf(x)].myseriespage=1;  
+   state[state.indexOf(x)].searched="";  
+   state[state.indexOf(x)].mylastseries=""; 
 }
 fs.writeFileSync("state.json",JSON.stringify(state));
 }
 
-function updateState(chatId,parameter,value)
+//dato che in javascript non esiste l'overloading, nella seguente funzione bisogna gestire l'esistenza dei parametri all'interno della funzione stessa
+function stateValue(chatId,parameter,value)
 {
     var state=JSON.parse(fs.readFileSync("state.json"));
     let x=state.find(e=>(e.id==chatId));
+    var toreturn; //variabile che a seconda delle necessità potrebbe assumere un valore ed essere ritornata
     switch (parameter) {
-        case "searched":
-            state[state.indexOf(x)].searched=value;
+        case "searched": 
+            {
+            if(value)  //se è presente il parametro 'value', significa che bisogna assegnare un nuovo valore alla variabile
+            {
+           state[state.indexOf(x)].searched=value;
+           state[state.indexOf(x)].searchbynamepage=1; //ogni volta che viene cercata una parola, è ovvio che anche la pagina da visualizzare è la prima
+            }
+           else 
+           toreturn =state[state.indexOf(x)].searched; //se non c'è il parametro 'value', bisogna soltanto ritornare il valore
+        }
         break;
-
-        case "mylastseries":
-            state[state.indexOf(x)].mylastseries=value;
-        break;
-    
-    }
-    fs.writeFileSync("state.json",JSON.stringify(state));
-}
-
-function getStateValue(chatId,parameter)
-{
-    var state=JSON.parse(fs.readFileSync("state.json"));
-    
-    let x=state.find(e => (e.id == chatId))
-    var value;
-    switch (parameter) {
-        case "mostpopularpage":
-            value=x.mostpopularpage;
-        break;
-
-        case "searchbynamepage":
-            vlaue=x.searchbynamepage;;
-        break;
-
-        case "myseriespage":
-            value=x.myseriespage;
-        break;
-
-        case "searched":
-            value=x.searched;
-        break;
-
-        case "mylastseries":
-            value=x.mylastseries;
-        break;
-    
-    }
-    return value;
-}
-
-function updatePage(chatId,page,operation)
-{
-    var state=JSON.parse(fs.readFileSync("state.json"));
-    let x=state.find(e=>(e.id==chatId));
-    var value;
-    switch (page) {
-        case "mostpopularpage":
-            if(operation=="+")
-           value= state[state.indexOf(x)].mostpopularpage+=1;
-           else
-           value= state[state.indexOf(x)].mostpopularpage-=1;
-        break;
-
-        case "searchbynamepage":
-            if(operation=="+")
-            value= state[state.indexOf(x)].searchbynamepage+=1;
+            
+        case "mylastseries": 
+            {
+            if(value)
+           state[state.indexOf(x)].mylastseries=value;
             else
-            value= state[state.indexOf(x)].searchbynamepage-=1;
+            toreturn= state[state.indexOf(x)].mylastseries;
+            }
         break;
 
-        case "myseriespage":
-            if(operation=="+")
-            value= state[state.indexOf(x)].myseriespage+=1;
-            else
-            value= state[state.indexOf(x)].myseriespage-=1;
+        case "myseriespage": //nel caso in cui il parametro interessato fosse una pagina, ci sono diverse situazioni che possono emergere
+            {
+            if(value) //se presente un valore da assegnare
+            {
+                if(value=='+') //se il valore è il carattere '+' bisogna aumentare di 1 il numero della pagina. In questo caso è utile anche ritornare il valore
+                toreturn= ++state[state.indexOf(x)].myseriespage;
+                else if(value=='-') //se il valore è il carattere '-' bisogna diminuire di 1 il numero della pagina. In questo caso è utile anche ritornare il valore
+                toreturn= --state[state.indexOf(x)].myseriespage;
+                else //se nessun caso precedente è verificato, si assegna un valore a mano (utile in una futura funzione dove si può saltare direttamente a una certa pagina)
+                state[state.indexOf(x)].myseriespage=value; 
+            }
+           
+           else //se non c'è il parametro 'value', bisogna soltanto ritornare il valore
+           toreturn=state[state.indexOf(x)].myseriespage;
+            }
         break;
-    
+
+        case "mostpopularpage":
+            {
+                if(value)
+                {
+                    if(value=='+')
+                    toreturn= ++state[state.indexOf(x)].mostpopularpage;
+                    else if(value=='-')
+                    toreturn= --state[state.indexOf(x)].mostpopularpage;
+                    else
+                    state[state.indexOf(x)].mostpopularpage=value;
+                }
+               
+               else
+               toreturn=state[state.indexOf(x)].mostpopularpage;
+            }
+            break;
+            
+        case "searchbynamepage":
+            {
+                if(value)
+                {
+                    if(value=='+')
+                    toreturn= ++state[state.indexOf(x)].searchbynamepage;
+                    else if(value=='-')
+                    toreturn= --state[state.indexOf(x)].searchbynamepage;
+                    else
+                    state[state.indexOf(x)].searchbynamepage=value;
+
+                }
+               
+               else
+               toreturn=state[state.indexOf(x)].searchbynamepage;
+            }
+            break;
     }
-    fs.writeFileSync("state.json",JSON.stringify(state));
-    return value;
+    if(value) fs.writeFileSync("state.json",JSON.stringify(state)); //se presente il parametro 'value' è stata fatta una modifica, quindi bisogna riscrivere il file
+    if(toreturn) return toreturn; //se la variabile 'toreturn' ha un valore, bisogna ritornarlo
 }
