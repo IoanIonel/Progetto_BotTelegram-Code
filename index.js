@@ -839,3 +839,8 @@ function stateValue(chatId,parameter,value)
     if(value) fs.writeFileSync("state.json",JSON.stringify(state)); //se presente il parametro 'value' è stata fatta una modifica, quindi bisogna riscrivere il file
     if(toreturn) return toreturn; //se la variabile 'toreturn' ha un valore, bisogna ritornarlo
 }
+
+bot.on("polling_error",err=>
+{
+    console.error(err);
+});
