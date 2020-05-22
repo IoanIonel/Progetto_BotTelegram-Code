@@ -56,7 +56,10 @@ bot.onText(/\/myseries/, function (msg, match) {
                 reply_markup: {
                     inline_keyboard: keyboard
                 }
-            });
+            }).then(message=>{
+                updateState(msg.chat.id,"mylastseries",message.message_id); //mi serve sapere l'id dell'utlimo messaggio che mostra le serie seguite cosicchè nel caso 
+                //in cui io smettessi di seguire una serie, potessi direttamente aggiornare il messaggio con questo id
+            }).catch(error=>{console.error(error)});
         }
     });
 
@@ -181,30 +184,66 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
     }
 
     if (data.includes("followseries")) { //i dati contengono la parola 'followseries' se è stato premuto sul bottone 'Follow' all'interno dell'interfaccia che mostra i dettagli di una serie
-
-        var info = data.split(':')[1]; //la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie;nomeDellaSerie"
-        var seriesId = info.split(';')[0];
-        var seriesName = info.split(';')[1]; //il nome della serie serve nella funzione FollowSeries (aggiunta al database). Inutile effettuare una'altra richiesta GET soltanto per avere il nome
-        var changes = FollowSeries(seriesName, seriesId, chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
-        if (changes == 1) {
-
-            bot.answerCallbackQuery(callbackQuery.id).then(bot.editMessageReplyMarkup({
-                //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva il bottone 'Follow'
-                //in questo modo quel messaggio che prima conteneva le informazioni di una serie, un tasto 'Back' e un tasto 'Follow', ora non contiene più quest'ultimo tasto 
-                inline_keyboard: [
-                    [{
-                        text: "Back",
-                        callback_data: "back"
-                    }]
-                ]
-            }, {
-                chat_id: chatId,
-                message_id: msg.message_id
-            }).catch(err=>{console.error(err);}));
-
-        } else {
-            bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
+switch (data) {
+    case "followseries":
+        {
+            var info = data.split(':')[1]; //la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie;nomeDellaSerie"
+            var seriesId = info.split(';')[0];
+            var seriesName = info.split(';')[1]; //il nome della serie serve nella funzione FollowSeries (aggiunta al database). Inutile effettuare una'altra richiesta GET soltanto per avere il nome
+            var changes = FollowSeries(seriesName, seriesId, chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
+            if (changes == 1) {
+    
+                bot.answerCallbackQuery(callbackQuery.id).then(bot.editMessageReplyMarkup({
+                    //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva il bottone 'Follow'
+                    //in questo modo quel messaggio che prima conteneva le informazioni di una serie, un tasto 'Back' e un tasto 'Follow', ora non contiene più quest'ultimo tasto 
+                    inline_keyboard: [
+                        [{
+                            text: "Back",
+                            callback_data: "back"
+                        }]
+                    ]
+                }, {
+                    chat_id: chatId,
+                    message_id: msg.message_id
+                }).catch(err=>{console.error(err);}));
+    
+            } else {
+                bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
+            }
         }
+        break;
+
+        case "unfollowseries":
+            {
+               
+                var seriesId = data.split(':')[1];//la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie"
+                var changes = UnFollowSeries(seriesId,chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
+                if (changes == 1) {
+        
+                    bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, 1, function (keyboard) {
+                        //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
+                        //in questo modo quel messaggio si aggiorna in modo che non mostri più la serie eliminata
+                        //viene passata come pagina da mostrare la prima, in quanto non si sa se dopo aver cancellato una serie, esistano più pagine (inutile effettuare altri controlli)
+                        //i bottoni aggiornati verranno creati nella funzione MySeries che ritorna l'oggetto InlineKeyboardButton[][]
+                
+                         //cancello il messaggio con il tasto 'unfollow' perchè non serve più
+                        bot.deleteMessage(chatId,msg.message_id).then( 
+                        bot.editMessageReplyMarkup({   
+                            inline_keyboard: keyboard
+                        }, {
+                            chat_id: chatId,
+                            message_id: getStateValue(chatId,"mylastseries")
+                        })).catch(err=>{console.error(err);});
+    
+                    }));
+        
+                } else {
+                    bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
+                }
+            }
+            break;
+}
+    
     }
 
     if (data.includes("nextpage")) { //i dati contengono la parola 'nextpage' se è stato premuto sul bottone 'Next' nelle interfacce contenenti liste
@@ -447,6 +486,17 @@ function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
 }
 
+function UnfollowSeries(seriesId,chatId)
+{
+    let db = new Database('./myseries.db');
+
+    let query = db.prepare("DELETE FROM watchedseries WHERE seriesId=? AND chatId=?");
+    let info = query.run(seriesId, chatId);
+    db.close();
+
+    return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
+}
+
 function isWatchingSeries(chatId, seriesId) { //funzione che verifica se un utente segue già una serie oppure no. Utile per sapere se mostrare il tasto 'Follow'
     let db = new Database('./myseries.db');
 
@@ -593,6 +643,10 @@ function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti pres
             [{
                 text: "Update your episodes notes",
                 callback_data: "seriesnotes:" + id+";"+info[0].seriesName
+            }],
+            [{
+                text: "Unfollow",
+                callback_data: "unfollowseries:" + id
             }]
         ]
     } else { //nel caso in cui non abbia nessun valore, cambia il messaggio e il testo di uno dei bottoni. 
@@ -606,6 +660,10 @@ function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti pres
             [{
                 text: "Add some episode notes",
                 callback_data: "seriesnotes:" + id+";"+info[0].seriesName
+            }],
+            [{
+                text: "Unfollow",
+                callback_data: "unfollowseries:" + id
             }]
         ]
     }
