@@ -86,7 +86,7 @@ bot.onText(/\/start/, function (msg, match) {
     */
    setState(msg.chat.id);
     
-    bot.sendMessage(msg.chat.id, "Welcome to this bot! \n Try out the commands and enjoy!"); //messaggio di benvenuto
+    bot.sendMessage(msg.chat.id, "Welcome to this bot! \n Try out the commands and enjoy!" + process.env.PORT); //messaggio di benvenuto
 
 });
 

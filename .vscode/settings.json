@@ -2,5 +2,7 @@
     "appService.zipIgnorePattern": [
         "node_modules{,/**}",
         ".vscode{,/**}"
-    ]
+    ],
+    "appService.defaultWebAppToDeploy": "/subscriptions/81f715bf-c072-481a-957b-66653232644c/resourceGroups/appsvc_linux_centralus/providers/Microsoft.Web/sites/MyTVSeriesBot",
+    "appService.deploySubpath": ""
 }
