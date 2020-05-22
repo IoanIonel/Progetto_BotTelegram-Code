@@ -474,11 +474,11 @@ function replaceAll(str, search, replace) { //sostituisce tutte le occorrenze di
 function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un valore al campo 'nextEpisode' (inizialmente nullo) interpretato come 'appunti'
     let db = new Database('./myseries.db');
 
-    let current_datetime = new Date();
-    let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
+    //let current_datetime = new Date();
+   // let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
 
     let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode, lastUpdate) VALUES(?,?,?,?,?)");
-    let info = query.run(chatId, seriesid, seriesname, null, formatted_date);
+    let info = query.run(chatId, seriesid, seriesname, null, "4");
     db.close();
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
