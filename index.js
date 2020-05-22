@@ -1,4 +1,5 @@
 process.env.NTBA_FIX_319 = 1;
+const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
@@ -6,7 +7,7 @@ const Database = require('better-sqlite3');
 const bot = new TelegramBot(token, {
     polling: true
 });
-var state = []; //memorizzo lo 'stato' degli utenti. Salvo  il numero delle pagine a cui sono arrivati nelle varie interfacce. Salvo inoltre l'ultima parola cercata
+
 axios.default.defaults.timeout = 20000; //dopo 20 secondi preferisco che si generi un'eccezione e che l'utente possa provare ad eseguire un'altra chiamata
 bot.onText(/\/mostwatched/, function (msg, match) {
 
@@ -20,7 +21,7 @@ bot.onText(/\/mostwatched/, function (msg, match) {
        }
        \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ questo mi serviva in fase di debug per non dover chiamare sempre '/start'
        */
-    MostPopular(state.find(x => (x.id == msg.chat.id)).mostpopularpage, function (keyboard) { //==>>>> chiamo la funzione che mi mostra le serie più guardate e aspetto 
+    MostPopular(getStateValue(msg.chat.id,"mostpopularpage"), function (keyboard) { //==>>>> chiamo la funzione che mi mostra le serie più guardate e aspetto 
         //il valore di ritorno keyboard(oggetto InlineKeyboardButton[][]) in una callback
 
         bot.sendMessage(msg.chat.id, "Select a series for more info!", {
@@ -44,7 +45,7 @@ bot.onText(/\/myseries/, function (msg, match) {
     }
    \\\\\\\\\\\\\\\\\\\\\\\ utile in fase di debug
     */
-    MySeries(msg.chat.id, state.find(x => (x.id == msg.chat.id)).myseriespage, function (keyboard, err) { //==>>>> chiamo la funzione che mi mostra le serie che seguo personalmente 
+    MySeries(msg.chat.id, getStateValue(msg.chat.id,"myseriespage"), function (keyboard, err) { //==>>>> chiamo la funzione che mi mostra le serie che seguo personalmente 
 
         //e aspetto il valore di ritorno keyboard(oggetto InlineKeyboardButton[][]) in una callback. Se presente il valore 'err', non seguo nessuna serie
 
@@ -63,7 +64,7 @@ bot.onText(/\/myseries/, function (msg, match) {
 
 bot.onText(/\/start/, function (msg, match) {
 
-    if (!state.find(x => (x.id == msg.chat.id))) { //=>>>>> inizializzo lo stato citato all'inizio. 
+    /*if (!state.find(x => (x.id == msg.chat.id))) { //=>>>>> inizializzo lo stato citato all'inizio. 
         state.push({
 
             "id": msg.chat.id, //memorizzare l'id serve nella funzione 'find' per trovare il numero delle pagine di ogni utente
@@ -74,6 +75,9 @@ bot.onText(/\/start/, function (msg, match) {
             "search": "" //'search'(l'ultima parola cercata) ovviamente all'inizio non ha valore
         });
     }
+    */
+   setState(msg.chat.id);
+    
     bot.sendMessage(msg.chat.id, "Welcome to this bot! \n Try out the commands and enjoy!"); //messaggio di benvenuto
 
 });
@@ -91,16 +95,16 @@ bot.onText(/\/search (.+)/, (msg, match) => {
      utile in fase di debug
      */
 
-    state.find(x => (x.id == msg.chat.id)).searchbynamepage = 1; //nel caso di una nuova ricerca, il valore della pagina mostrata viene rimesso a 1
-    var search = match[1]; //parola cercata
-    var page =
-        state.find(x => (x.id == msg.chat.id)).search = search; //inizializzo l'ultima parola cercata dall'utente
-    SearchByName(search, 1,
+    //state.find(x => (x.id == msg.chat.id)).searchbynamepage = 1;
+     //nel caso di una nuova ricerca, il valore della pagina mostrata viene rimesso a 1
+    var searched = match[1]; //parola cercata
+    updateState(msg.chat.id,"searched",searched); //inizializzo l'ultima parola cercata dall'utente
+    SearchByName(searched, 1,
         function (keyboard, err) { //==>>>> chiamo la funzione che mi mostra le serie che ho cercato 
 
             //e aspetto il valore di ritorno keyboard(oggetto InlineKeyboardButton[][]) in una callback. Se presente il valore 'err', non è stato trovato alcun risultato
             if (err) {
-                bot.sendMessage(msg.chat.id, "No results found for " + state.find(x => (x.id == msg.chat.id)).search);
+                bot.sendMessage(msg.chat.id, "No results found for " + searched);
             } else {
 
                 bot.sendMessage(msg.chat.id, "Select a series for more info!", {
@@ -208,7 +212,8 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         switch (data) {
             case "nextpagemyseries": { //è stata cambiata la pagina all'interno della lista contenente le serie seguite
 
-                let page = state.find(x => (x.id == chatId)).myseriespage += 1;
+                let page = updatePage(chatId,"myseriespage",'+');
+                
                 bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, page, function (keyboard) {
                     //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
                     //in questo modo quel messaggio si aggiorna e mostra le prossime serie (max 20 per pagina)
@@ -226,7 +231,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
             break;
 
         case "nextpagemostpopular": { //è stata cambiata la pagina all'interno della lista contenente le serie più famose
-            let page = state.find(x => (x.id == chatId)).mostpopularpage += 1;
+            let page = updatePage(chatId,"mostpopularpage",'+');
 
             bot.answerCallbackQuery(callbackQuery.id).then(MostPopular(page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie più famose
@@ -243,9 +248,9 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         break;
 
         case "nextpagesearchbyname": { //è stata cambiata la pagina all'interno della lista contenente le serie cercate
-            let page = state.find(x => (x.id == chatId)).searchbynamepage += 1;
-            let search = state.find(x => (x.id == chatId)).search;
-            bot.answerCallbackQuery(callbackQuery.id).then(SearchByName(search, page, function (keyboard) {
+            let page = updatePage(chatId,"searchbynamepage",'+');
+            let searched = getStateValue(chatId,"searched");
+            bot.answerCallbackQuery(callbackQuery.id).then(SearchByName(searched, page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie cercate
                 //in questo modo quel messaggio si aggiorna e mostra le prossime serie (max 20 per pagina)
                 //i bottoni aggiornati verranno creati nella funzione SearchByName che ritorna l'oggetto InlineKeyboardButton[][]
@@ -268,7 +273,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
 
         switch (data) {
             case "prevpagemyseries": { //è stata cambiata la pagina all'interno della lista contenente le serie seguite
-                let page = state.find(x => (x.id == chatId)).myseriespage -= 1;
+                let page = updatePage(chatId,"myseriespage",'-');
 
                 bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, page, function (keyboard, err) {
                     //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
@@ -287,7 +292,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
             break;
 
         case "prevpagemostpopular": { //è stata cambiata la pagina all'interno della lista contenente le serie più famose
-            let page = state.find(x => (x.id == chatId)).mostpopularpage -= 1;
+            let page =  updatePage(chatId,"mostpopularpage",'-');
 
             bot.answerCallbackQuery(callbackQuery.id).then(MostPopular(page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie più famose
@@ -305,10 +310,10 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
         break;
 
         case "prevpagesearchbyname": { //è stata cambiata la pagina all'interno della lista contenente le serie cercate
-            let page = state.find(x => (x.id == chatId)).searchbynamepage -= 1;
-            let search = state.find(x => (x.id == chatId)).search;
+            let page =  updatePage(chatId,"searchbynamepage",'-');
+            let searched = getStateValue(chatId,"searched");
 
-            bot.answerCallbackQuery(callbackQuery.id).then(SearchByName(search, page, function (keyboard) {
+            bot.answerCallbackQuery(callbackQuery.id).then(SearchByName(searched, page, function (keyboard) {
                 //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie cercate
                 //in questo modo quel messaggio si aggiorna e mostra le prossime serie (max 20 per pagina)
                 //i bottoni aggiornati verranno creati nella funzione SearchByName che ritorna l'oggetto InlineKeyboardButton[][]
@@ -671,4 +676,110 @@ function SearchByName(search, page, callback) { //funzione che ritorna le serie 
         }).catch(error => {
             console.log(error);
         });
+}
+
+function setState(chatId)
+{
+var state=JSON.parse(fs.readFileSync("state.json"));
+let x=state.find(e=>(e.id==chatId));
+if(!x)
+{
+    state.push({
+        "id":chatId,
+        "mostpopularpage": 1,
+        "searchbynamepage": 1,
+        "myseriespage": 1,
+        "searched": "",
+        "mylastseries":""
+    });
+}
+else
+{
+   state[state.indexOf(x)].mostpopularpage=1;
+   state[state.indexOf(x)].searchbynamepage=1;
+   state[state.indexOf(x)].myseriespage=1;
+   state[state.indexOf(x)].searched="";
+   state[state.indexOf(x)].mylastseries="";
+}
+fs.writeFileSync("state.json",JSON.stringify(state));
+}
+
+function updateState(chatId,parameter,value)
+{
+    var state=JSON.parse(fs.readFileSync("state.json"));
+    let x=state.find(e=>(e.id==chatId));
+    switch (parameter) {
+        case "searched":
+            state[state.indexOf(x)].searched=value;
+        break;
+
+        case "mylastseries":
+            state[state.indexOf(x)].mylastseries=value;
+        break;
+    
+    }
+    fs.writeFileSync("state.json",JSON.stringify(state));
+}
+
+function getStateValue(chatId,parameter)
+{
+    var state=JSON.parse(fs.readFileSync("state.json"));
+    
+    let x=state.find(e => (e.id == chatId))
+    var value;
+    switch (parameter) {
+        case "mostpopularpage":
+            value=x.mostpopularpage;
+        break;
+
+        case "searchbynamepage":
+            vlaue=x.searchbynamepage;;
+        break;
+
+        case "myseriespage":
+            value=x.myseriespage;
+        break;
+
+        case "searched":
+            value=x.searched;
+        break;
+
+        case "mylastseries":
+            value=x.mylastseries;
+        break;
+    
+    }
+    return value;
+}
+
+function updatePage(chatId,page,operation)
+{
+    var state=JSON.parse(fs.readFileSync("state.json"));
+    let x=state.find(e=>(e.id==chatId));
+    var value;
+    switch (page) {
+        case "mostpopularpage":
+            if(operation=="+")
+           value= state[state.indexOf(x)].mostpopularpage+=1;
+           else
+           value= state[state.indexOf(x)].mostpopularpage-=1;
+        break;
+
+        case "searchbynamepage":
+            if(operation=="+")
+            value= state[state.indexOf(x)].searchbynamepage+=1;
+            else
+            value= state[state.indexOf(x)].searchbynamepage-=1;
+        break;
+
+        case "myseriespage":
+            if(operation=="+")
+            value= state[state.indexOf(x)].myseriespage+=1;
+            else
+            value= state[state.indexOf(x)].myseriespage-=1;
+        break;
+    
+    }
+    fs.writeFileSync("state.json",JSON.stringify(state));
+    return value;
 }
