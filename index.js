@@ -1,5 +1,7 @@
 process.env.NTBA_FIX_319 = 1;
 const fs = require('fs');
+const express=require('express');
+const app=express();
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
@@ -7,7 +9,7 @@ const Database = require('better-sqlite3');
 const bot = new TelegramBot(token, {
     polling: true
 });
-
+app.listen(process.env.PORT);
 axios.default.defaults.timeout = 20000; //dopo 20 secondi preferisco che si generi un'eccezione e che l'utente possa provare ad eseguire un'altra chiamata
 bot.onText(/\/mostwatched/, function (msg, match) {
 
