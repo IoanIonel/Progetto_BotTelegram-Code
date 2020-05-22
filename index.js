@@ -477,8 +477,8 @@ function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un
     //let current_datetime = new Date();
    // let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
 
-    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode, lastUpdate) VALUES(?,?,?,?,?)");
-    let info = query.run(chatId, seriesid, seriesname, null, "4");
+    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
+    let info = query.run(chatId, seriesid, seriesname, null);
     db.close();
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
