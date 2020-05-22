@@ -9,7 +9,9 @@ const Database = require('better-sqlite3');
 const bot = new TelegramBot(token, {
     polling: true
 });
-app.listen(process.env.PORT);
+app.listen(process.env.PORT, function () {
+    console.log('listening on port 3000!');
+  });
 app.get('/',function(req,res){
 res.send("The bot is up!"); //utilizzo express per effettuare richieste periodiche http per tenere 'in vita' il bot
 });
@@ -398,6 +400,10 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
     }
 });
 
+bot.on("polling_error",function(err)
+{
+    console.error(err);
+});
 
 function SeriesInfoDetails(id, chatId, callback) { //funzione che mostra i dettagli di una serie 
 
@@ -840,7 +846,3 @@ function stateValue(chatId,parameter,value)
     if(toreturn) return toreturn; //se la variabile 'toreturn' ha un valore, bisogna ritornarlo
 }
 
-bot.on("polling_error",err=>
-{
-    console.error(err);
-});
