@@ -183,12 +183,13 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
 
                                     stateValue(chatId, "myseriespage", 1); //aggiorno lo stato del numero della pagina 
 
-                                    bot.editMessageReplyMarkup({
-                                        inline_keyboard: keyboard
-                                    }, {
+                                    bot.editMessageText("Select a series to note down something!", {
                                         chat_id: chatId,
-                                        message_id: mylastseries
-                                    });
+                                        message_id: mylastseries,
+                                        reply_markup: {
+                                            inline_keyboard: keyboard
+                                        }
+                                    })
 
                                 });
                             }
