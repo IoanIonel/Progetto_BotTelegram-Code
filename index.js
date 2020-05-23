@@ -483,11 +483,7 @@ let db = new Database('./app_data/myseries.db');
     let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
     console.log(formatted_date);
     let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, seriesNotes, lastUpdate) VALUES(?,?,?,?,?)");
-    
-    console.log(db.open);
-    console.log(db.inTransaction);
-    console.log(db.readonly);
-    
+    db.pragma("journal_mode=WAL");
     let info = query.run(chatId, seriesid, seriesname, null, formatted_date);
     db.close();
     
@@ -497,9 +493,7 @@ let db = new Database('./app_data/myseries.db');
     catch(error)
     {
         console.log(error);
-        console.log(db.open);
-    console.log(db.inTransaction);
-    console.log(db.readonly);
+
     }
 }
 
