@@ -209,14 +209,21 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 var seriesId = data.split(':')[1];//la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie"
                 var changes = UnfollowSeries(seriesId,chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
                 if (changes == 1) {
-        
+        let mylastseries=ststateValue(chatId,"mylastseries");
                     bot.answerCallbackQuery(callbackQuery.id).then(
-                        MySeries(chatId, 1, function (keyboard) {
+                        MySeries(chatId, 1, function (keyboard,err) {
                         //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
                         //in questo modo quel messaggio si aggiorna in modo che non mostri più la serie eliminata
                         //viene passata come pagina da mostrare la prima, in quanto non si sa se dopo aver cancellato una serie, esistano più pagine (inutile effettuare altri controlli)
                         //i bottoni aggiornati verranno creati nella funzione MySeries che ritorna l'oggetto InlineKeyboardButton[][]
 
+                        if (err) { //se era l'ultima serie che seguivo
+                            bot.editMessageText("You are not following any series!",{chat_id:chatId, message_id:mylastseries}).catch(err=>{console.error(err);}).
+                            then(bot.editMessageReplyMarkup({inline_keyboard:[[]]},{chat_id:chatId,message_id:mylastseries}).
+                            catch(err=>{console.error(err);}));
+                            
+                        }
+                        else{
                         stateValue(chatId,"myseriespage",1); //aggiorno lo stato del numero della pagina 
 
                          //cancello il messaggio con il tasto 'unfollow' perchè non serve più
@@ -227,9 +234,10 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                             chat_id: chatId,
                             message_id: stateValue(chatId,"mylastseries")
                         })).catch(err=>{console.error(err);});
+                    }
     
-                    }))
-        
+                    }));
+            
                 } else {
                     bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
                 }
