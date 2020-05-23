@@ -761,7 +761,7 @@ function UpdateSeriesNotes(chatId, seriesId, notes) { //funzione che modifica o 
 try{
     let db = new Database('./app_data/myseries.db');
     let query = db.prepare("update watchedseries set seriesNotes=?, lastUpdate=? where chatId=? and seriesId=?");
-    let info = query.run(notes, getDateTime(), chatId, getDateTime());
+    let info = query.run(notes, getDateTime(), chatId, seriesId);
     db.close();
     return info.changes; //ritorno i cambiamenti (presenti anche se il campo è stato 'aggiornato' con lo stesso valore) per controllare che l'operazione abbia funzionato
 }
