@@ -52,7 +52,10 @@ bot.onText(/\/myseries/, function (msg, match) {
         //e aspetto il valore di ritorno keyboard(oggetto InlineKeyboardButton[][]) in una callback. Se presente il valore 'err', non seguo nessuna serie
 
         if (err)
-            bot.sendMessage(msg.chat.id, "You are not following any series!");
+            bot.sendMessage(msg.chat.id, "You are not following any series!").then(message => stateValue(msg.chat.id, "mylastseries", message.message_id)) 
+            //mi serve sapere l'id dell'utlimo messaggio che mostra le serie seguite cosicchè nel caso 
+            //in cui io smettessi di seguire una serie, o iniziassi a seguire una nuova, potessi direttamente aggiornare il messaggio con questo id
+            .catch(error => console.error(error));
         else {
             bot.sendMessage(msg.chat.id, "Select a series to note down something!", {
                     reply_markup: {
