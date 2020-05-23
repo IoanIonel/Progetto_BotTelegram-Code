@@ -209,7 +209,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 var seriesId = data.split(':')[1];//la 'callback_data' è formata in questo modo: "funzioneInteressata:idDellaSerie"
                 var changes = UnfollowSeries(seriesId,chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
                 if (changes == 1) {
-        let mylastseries=ststateValue(chatId,"mylastseries");
+        let mylastseries=stateValue(chatId,"mylastseries");
                     bot.answerCallbackQuery(callbackQuery.id).then(
                         MySeries(chatId, 1, function (keyboard,err) {
                         //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
