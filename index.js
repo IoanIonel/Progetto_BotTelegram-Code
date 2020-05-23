@@ -637,7 +637,7 @@ function isWatchingSeries(chatId, seriesId) { //funzione che verifica se un uten
 function MySeries(chatId, page, callback) { //funzione che mostra le serie seguite. Richiede la connessione al database
     try{
     let db = new Database('./app_data/myseries.db');
-    let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=?");
+    let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=? ORDER BY lastUpdate DESC");
     let info = query.all(chatId);
     db.close();
     var seriesKB = []; //l'interfaccia (oggetto InlineKeyboardButton[][]) che ritorneremo 
@@ -761,7 +761,7 @@ function UpdateSeriesNotes(chatId, seriesId, notes) { //funzione che modifica o 
 try{
     let db = new Database('./app_data/myseries.db');
     let query = db.prepare("update watchedseries set seriesNotes=?, lastUpdate=? where chatId=? and seriesId=?");
-    let info = query.run(notes, formatted_date, chatId, getDateTime());
+    let info = query.run(notes, getDateTime(), chatId, getDateTime());
     db.close();
     return info.changes; //ritorno i cambiamenti (presenti anche se il campo è stato 'aggiornato' con lo stesso valore) per controllare che l'operazione abbia funzionato
 }
