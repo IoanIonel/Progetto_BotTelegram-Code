@@ -473,19 +473,22 @@ function replaceAll(str, search, replace) { //sostituisce tutte le occorrenze di
     return str.split(search).join(replace);
 }
 
-function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un valore al campo 'nextEpisode' (inizialmente nullo) interpretato come 'appunti'
+function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un valore al campo 'seriesNotes' (inizialmente nullo) interpretato come 'appunti'
     
-   
+let db = new Database('./app_data/myseries.db');
     try{
-    let db = new Database('./app_data/myseries.db');
+    
+    
     let current_datetime = new Date();
     let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
     console.log(formatted_date);
-    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode, lastUpdate) VALUES(?,?,?,?,?)");
-    console.log(query.source);
+    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, seriesNotes, lastUpdate) VALUES(?,?,?,?,?)");
+    db.pragma()
+    console.log(db.open);
+    console.log(db.inTransaction);
+    console.log(db.readonly);
     
     let info = query.run(chatId, seriesid, seriesname, null, formatted_date);
-    console.log(info.lastInsertRowid);
     db.close();
     
 
@@ -494,6 +497,9 @@ function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un
     catch(error)
     {
         console.log(error);
+        console.log(db.open);
+    console.log(db.inTransaction);
+    console.log(db.readonly);
     }
 }
 
@@ -521,6 +527,7 @@ function isWatchingSeries(chatId, seriesId) { //funzione che verifica se un uten
     let query = db.prepare("SELECT seriesName FROM watchedseries WHERE chatId=? AND seriesId=?");
     let info = query.get(chatId, seriesId);
     db.close();
+    
     if (info != null)
         return true;
     else
@@ -653,14 +660,14 @@ function MySeries(chatId, page, callback) { //funzione che mostra le serie segui
 
 function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti presi per una serie. Richiede la connessione al database
     let db = new Database('./app_data/myseries.db');
-    let query = db.prepare("SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=? AND seriesId=?");
+    let query = db.prepare("SELECT seriesName,seriesNotes FROM watchedseries WHERE chatId=? AND seriesId=?");
     let info = query.all(chatId, id);
     db.close();
     var infoKB;
     var messagetext;
     var answer=[]; //uso un array per ritornare i dati
-    if (info[0].nextEpisode) { //se questo campo ha valore (inizialmente è nullo), allora viene mostrato un messaggio insieme a un tasto per tornare indietro e un tasto per cambiare gli appunti
-        messagetext = "The next episode of " + info[0].seriesName + " you have to watch is: " + info[0].nextEpisode;
+    if (info[0].seriesNotes) { //se questo campo ha valore (inizialmente è nullo), allora viene mostrato un messaggio insieme a un tasto per tornare indietro e un tasto per cambiare gli appunti
+        messagetext = "The next episode of " + info[0].seriesName + " you have to watch is: " + info[0].seriesNotes;
         infoKB = [
             [{
                 text: "Back",
@@ -702,7 +709,7 @@ function UpdateSeriesNotes(chatId, seriesId, notes) { //funzione che modifica o 
     let db = new Database('./app_data/myseries.db');
     let current_datetime = new Date();
     let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
-    let query = db.prepare("update watchedseries set nextEpisode=?, lastUpdate=? where chatId=? and seriesId=?");
+    let query = db.prepare("update watchedseries set seriesNotes=?, lastUpdate=? where chatId=? and seriesId=?");
     let info = query.run(notes,formatted_date, chatId, seriesId);
     db.close();
     return info.changes; //ritorno i cambiamenti (presenti anche se il campo è stato 'aggiornato' con lo stesso valore) per controllare che l'operazione abbia funzionato
