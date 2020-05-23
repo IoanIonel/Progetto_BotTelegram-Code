@@ -4,6 +4,7 @@ const express=require('express');
 const app=express();
 const TelegramBot = require('node-telegram-bot-api'); //inizializzazione bot
 const token = '1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE';
+
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
 const Database = require('better-sqlite3');
 const bot = new TelegramBot(token, {
@@ -209,7 +210,8 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                 var changes = UnfollowSeries(seriesId,chatId); //questa funzione ritorna il numero di righe modificate (in questo caso dovrebbe essere sempre 1)
                 if (changes == 1) {
         
-                    bot.answerCallbackQuery(callbackQuery.id).then(MySeries(chatId, 1, function (keyboard) {
+                    bot.answerCallbackQuery(callbackQuery.id).then(
+                        MySeries(chatId, 1, function (keyboard) {
                         //dico all'interfaccia che sto 'rispondendo' alla callback e utilizzo una funzione per modificare il messaggio che conteneva le serie seguite
                         //in questo modo quel messaggio si aggiorna in modo che non mostri più la serie eliminata
                         //viene passata come pagina da mostrare la prima, in quanto non si sa se dopo aver cancellato una serie, esistano più pagine (inutile effettuare altri controlli)
@@ -226,7 +228,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                             message_id: stateValue(chatId,"mylastseries")
                         })).catch(err=>{console.error(err);});
     
-                    }));
+                    }))
         
                 } else {
                     bot.sendMessage(chatId, "A problem has occurred"); //se non c'è alcun cambiamento, invia un avviso
@@ -472,31 +474,49 @@ function replaceAll(str, search, replace) { //sostituisce tutte le occorrenze di
 }
 
 function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un valore al campo 'nextEpisode' (inizialmente nullo) interpretato come 'appunti'
-    let db = new Database('./myseries.db');
-
-    //let current_datetime = new Date();
-   // let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
-
-    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode) VALUES(?,?,?,?)");
-    let info = query.run(chatId, seriesid, seriesname, null);
+    
+   
+    try{
+    let db = new Database('./app_data/myseries.db');
+    let current_datetime = new Date();
+    let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
+    console.log(formatted_date);
+    let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, nextEpisode, lastUpdate) VALUES(?,?,?,?,?)");
+    console.log(query.source);
+    
+    let info = query.run(chatId, seriesid, seriesname, null, formatted_date);
+    console.log(info.lastInsertRowid);
     db.close();
+    
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
+    }
+    catch(error)
+    {
+        console.log(error);
+    }
 }
 
 function UnfollowSeries(seriesId,chatId)
 {
-    let db = new Database('./myseries.db');
-
+    
+try{
+    let db = new Database('./app_data/myseries.db');
+   
     let query = db.prepare("DELETE FROM watchedseries WHERE seriesId=? AND chatId=?");
     let info = query.run(seriesId, chatId);
     db.close();
+}
+catch(err)
+{
+    console.error(err);
+}
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
 }
 
 function isWatchingSeries(chatId, seriesId) { //funzione che verifica se un utente segue già una serie oppure no. Utile per sapere se mostrare il tasto 'Follow'
-    let db = new Database('./myseries.db');
+    let db = new Database('./app_data/myseries.db');
 
     let query = db.prepare("SELECT seriesName FROM watchedseries WHERE chatId=? AND seriesId=?");
     let info = query.get(chatId, seriesId);
@@ -562,8 +582,9 @@ function MostPopular(page, callback) { //funzione che mostra le serie più famos
 }
 
 function MySeries(chatId, page, callback) { //funzione che mostra le serie seguite. Richiede la connessione al database
-    let db = new Database('./myseries.db'); 
-    let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=? ORDER By lastUpdate DESC");
+    try{
+    let db = new Database('./app_data/myseries.db'); 
+    let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=?");
     let info = query.all(chatId);
     var seriesKB = []; //l'interfaccia (oggetto InlineKeyboardButton[][]) che ritorneremo 
     var offset = (page - 1) * 20; //mentre l'api tornava già un massimo di 20 righe per chiamata, in questo caso invece devo decidere qual è l'offset
@@ -618,13 +639,20 @@ function MySeries(chatId, page, callback) { //funzione che mostra le serie segui
                 callback_data: "prevpagemyseries"
             }]);
         }
+
         callback(seriesKB, null); //restituisco in ordine, l'insieme dei bottoni e un valore null (che indica l'errore)
     }
+}
+    catch(err)
+    {
+        console.error(err);
+    }
+    
 
 }
 
 function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti presi per una serie. Richiede la connessione al database
-    let db = new Database('./myseries.db');
+    let db = new Database('./app_data/myseries.db');
     let query = db.prepare("SELECT seriesName,nextEpisode FROM watchedseries WHERE chatId=? AND seriesId=?");
     let info = query.all(chatId, id);
     db.close();
@@ -671,7 +699,7 @@ function SeriesInfoEpisodes(id, chatId) { //funzione che mostra gli appunti pres
 
 function UpdateSeriesNotes(chatId, seriesId, notes) { //funzione che modifica o aggiunge degli appunti presi per una serie
 
-    let db = new Database('./myseries.db');
+    let db = new Database('./app_data/myseries.db');
     let current_datetime = new Date();
     let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
     let query = db.prepare("update watchedseries set nextEpisode=?, lastUpdate=? where chatId=? and seriesId=?");
