@@ -476,41 +476,25 @@ function replaceAll(str, search, replace) { //sostituisce tutte le occorrenze di
 function FollowSeries(seriesname, seriesid, chatId) { //funzione che aggiunge un valore al campo 'seriesNotes' (inizialmente nullo) interpretato come 'appunti'
     
 let db = new Database('./app_data/myseries.db');
-    try{
-    
-    
+   
+
     let current_datetime = new Date();
     let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
-    console.log(formatted_date);
+    
     let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, seriesNotes, lastUpdate) VALUES(?,?,?,?,?)");
-    db.pragma("journal_mode=WAL");
     let info = query.run(chatId, seriesid, seriesname, null, formatted_date);
     db.close();
-    
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
-    }
-    catch(error)
-    {
-        console.log(error);
-
-    }
 }
 
 function UnfollowSeries(seriesId,chatId)
 {
-    
-try{
     let db = new Database('./app_data/myseries.db');
    
     let query = db.prepare("DELETE FROM watchedseries WHERE seriesId=? AND chatId=?");
     let info = query.run(seriesId, chatId);
     db.close();
-}
-catch(err)
-{
-    console.error(err);
-}
 
     return info.changes; //ritorno il numero delle modifiche (anche se ho inserito lo stesso valore, è considerato cambiamento)
 }
@@ -583,7 +567,7 @@ function MostPopular(page, callback) { //funzione che mostra le serie più famos
 }
 
 function MySeries(chatId, page, callback) { //funzione che mostra le serie seguite. Richiede la connessione al database
-    try{
+    
     let db = new Database('./app_data/myseries.db'); 
     let query = db.prepare("SELECT seriesName,seriesId FROM watchedseries WHERE chatId=?");
     let info = query.all(chatId);
@@ -643,12 +627,6 @@ function MySeries(chatId, page, callback) { //funzione che mostra le serie segui
 
         callback(seriesKB, null); //restituisco in ordine, l'insieme dei bottoni e un valore null (che indica l'errore)
     }
-}
-    catch(err)
-    {
-        console.error(err);
-    }
-    
 
 }
 
