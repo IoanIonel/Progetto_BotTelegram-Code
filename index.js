@@ -483,7 +483,7 @@ let db = new Database('./app_data/myseries.db');
     let formatted_date = current_datetime.getFullYear() + "-" + (current_datetime.getMonth() + 1) + "-" + current_datetime.getDate() + " " + current_datetime.getHours() + ":" + current_datetime.getMinutes() + ":" + current_datetime.getSeconds(); 
     console.log(formatted_date);
     let query = db.prepare("INSERT INTO `watchedseries` (chatId, seriesId, seriesName, seriesNotes, lastUpdate) VALUES(?,?,?,?,?)");
-    db.pragma()
+    
     console.log(db.open);
     console.log(db.inTransaction);
     console.log(db.readonly);
