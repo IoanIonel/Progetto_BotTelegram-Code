@@ -218,7 +218,7 @@ bot.on("callback_query", (callbackQuery) => { //l'intera applicazione si basa su
                         //i bottoni aggiornati verranno creati nella funzione MySeries che ritorna l'oggetto InlineKeyboardButton[][]
 
                         if (err) { //se era l'ultima serie che seguivo
-                            bot.editMessageText("You are not following any series!",{chat_id:chatId, message_id:mylastseries}).catch(err=>{console.error(err);}).
+                           bot.deleteMessage(chatId,msg.message_id).then( bot.editMessageText("You are not following any series!",{chat_id:chatId, message_id:mylastseries}).catch(err=>{console.error(err);})).
                             then(bot.editMessageReplyMarkup({inline_keyboard:[[]]},{chat_id:chatId,message_id:mylastseries}).
                             catch(err=>{console.error(err);}));
                             
