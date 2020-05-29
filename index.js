@@ -14,7 +14,7 @@ const bot = new TelegramBot(token, {
 //#endregion
 
 //#region utilizzo express per effettuare richieste periodiche http per tenere 'in vita' il bot
-app.listen(3000, function () {
+app.listen(process.env.PORT, function () {
     console.log('listening on port! ' + process.env.PORT);
 });
 app.get('/', function (req, res) {
