@@ -18,9 +18,9 @@
   "homepage": "https://github.com/IoanIonel/Progetto_BotTelegram-Code#readme",
   "dependencies": {
     "axios": "^0.19.2",
-    "better-sqlite3": "^7.0.1",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
+    "mysql": "^2.18.1",
     "node-telegram-bot-api": "^0.50.0"
   }
 }
