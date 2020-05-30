@@ -8,14 +8,11 @@ const token = "1003123688:AAF3QGBhFiR8n9joWefQUv8qIza8ULo5plE";
 const axios = require('axios'); //pacchetto utilizzato per effetturare le chiamate GET
 axios.default.defaults.timeout = 20000; //dopo 20 secondi preferisco che si generi un'eccezione e che l'utente possa provare ad eseguire un'altra chiamata alle API delle serie tv
 const mysql = require('mysql');
-var con = mysql.createConnection({
+var con = mysql.createPool({
     host: 'remotemysql.com',
     user: 'yzPfFrHyzM',
     password: '0DvMsKykkb',
     database: 'yzPfFrHyzM'
-});
-con.connect((err) => {
-    if (err) console.error(err)
 });
 const bot = new TelegramBot(token, {
     polling: true
